@@ -31,10 +31,11 @@ def pipeline_flow():
     return summary
 
 if __name__ == "__main__":
-    result = pipeline_flow()
-    for key, value in result.items():
-        print(f"{key}: {value}")
+    pipeline_flow()
 
+# =====================================================
+# REFLECTION QUESTIONS
+# =====================================================
 #--- Reflection Question 1: Is Prefect worth the overhead for this pipeline?
 #--- For a simple three-step pipeline like this, Prefect is probably more overhead than
 #--- necessary. Plain Python functions already work fine here, and adding @task/@flow

@@ -195,6 +195,7 @@ axes[1].set_ylabel("Value")
 plt.tight_layout()
 plt.show()
 # It seems like the exponential distribution is more skewed because of the long tail of the data, while the normal distribution is more symmetric and centered around the mean.
+# For the normal distribution, the mean is an appropriate measure of central tendency since the data is symmetric. For the exponential (skewed) distribution, the median is more appropriate because the long tail pulls the mean upward, so the median better represents a typical value.
 
 #--- Descriptive Statistics Question 5---
 print("Descriptive Stats Question 5")
