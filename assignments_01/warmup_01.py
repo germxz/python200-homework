@@ -30,7 +30,7 @@ print(df.dtypes)
 
 #---Pandas Question 2----
 print ( f"Pandas Question 2: {len(df[df.grade > 80])}" )
-print(df[df.grade > 80])
+print(df[(df.grade > 80) & (df.passed == True)])
 
 #---Pandas Question 3----
 df['grade_curved'] = df['grade'] + 5
@@ -147,7 +147,7 @@ axes[0].plot(x, y)                       # left subplot: line
 axes[0].set_title("Squares")
 
 axes[1].bar(subjects, scores)            # right subplot: bars
-axes[1].set_title("Subject Scores")
+axes[1].set_title("Subject vs Scores")
 
 plt.tight_layout()
 plt.show()
@@ -186,13 +186,20 @@ plt.show()
 print("Descriptive Stats Question 4")
 normal_data = np.random.normal(50, 5, 200)
 skewed_data = np.random.exponential(10, 200)
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-plt.boxplot([normal_data, skewed_data], tick_labels=["Normal", "Exponential"])
-plt.title("Distribution Comparison")
-plt.xlabel("Distribution")
-plt.ylabel("Value")
+axes[0].boxplot(normal_data)
+axes[0].set_title("Normal Distribution")
+axes[0].set_xlabel("Distribution")
+axes[0].set_ylabel("Value")
+
+axes[1].boxplot(skewed_data)
+axes[1].set_title("Exponential Distribution")
+axes[1].set_xlabel("Distribution")
+axes[1].set_ylabel("Value")
+
+plt.tight_layout()
 plt.show()
-
 # It seems like the exponential distribution is more skewed because of the long tail of the data, while the normal distribution is more symmetric and centered around the mean.
 
 #--- Descriptive Statistics Question 5---
@@ -224,10 +231,12 @@ print(f"T-stat and P-value: t-statistic = {t_stat}, p-value = {p_value}")
 
 #---Hypothesis Question 2---
 print("Hypothesis Testing Question 2")
-if p_value < 0.05:
-    print("There is a significant difference between the two groups.")
+alpha = 0.05
+if p_value < alpha:
+    print(f"P-value ({p_value:.4f}) is less than alpha ({alpha}), so the result is statistically significant.")
 else:
-    print("There is no significant difference between the two groups.")
+    print(f"P-value ({p_value:.4f}) is greater than alpha ({alpha}), so the result is not statistically significant.")
+
 #---Hypothesis Question 3---
 before = [60, 65, 70, 58, 62, 67, 63, 66]
 after  = [68, 70, 76, 65, 69, 72, 70, 71]
@@ -246,9 +255,9 @@ print(f"T-stat and P-value: t-statistic = {t_stat}, p-value = {p_value}")
 t_stat, p_value= stats.ttest_ind(group_a, group_b, alternative="less")  
 print(f"Hypothesis Testing Question 5 T-stat and P-value: t-statistic = {t_stat}, p-value = {p_value}")
 #---Hypothesis Question 6---
-print("Hypothesis Testing Question 6")
-print("Group B scored about 11 points higher than Group A on average. A gap this large would be extremely unlikely if the groups were truly equal in skill. (p < 0.001). the t-statistic is large enough and the p-value is small enough to conclude that the difference is almost certainly real and not due to chance.")
-
+t_stat_ab, p_value_ab = stats.ttest_ind(group_a, group_b)
+diff = np.mean(group_b) - np.mean(group_a)
+print(f"Group B scored about {diff:.1f} points higher than Group A on average (t={t_stat_ab:.2f}, p={p_value_ab:.4f}). Since p < 0.05, this difference is unlikely to be due to chance.")
 #Correlation Review
 
 #---Correlation Question 1---
@@ -289,8 +298,8 @@ y = [90, 75, 60, 45, 30]
 
 plt.scatter(x, y)
 plt.title("Negative Correlation")
-plt.xlabel("X")
-plt.ylabel("Y")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 
 #---Correlation Question 5---

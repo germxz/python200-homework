@@ -24,7 +24,7 @@ def summarize_data(series):
     
 
 @flow
-def pipeline_flow(arr):
+def pipeline_flow():
     series = create_series(arr)
     cleaned_series = clean_data(series)
     summary = summarize_data(cleaned_series)
