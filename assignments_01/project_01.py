@@ -10,16 +10,12 @@ from scipy import stats
 def process_happiness_data():
     logger = get_run_logger()
 
-    base_url = (
-        "https://raw.githubusercontent.com/"
-        "Code-the-Dream-School/python-200-v1/"
-        "main/assignments/resources/happiness_project"
-    )
+    base_path = "assignments/resources/happiness_project"
 
     all_dataframes = [] 
 
     for year in range(2015, 2025):
-        file_path = f"{base_url}/world_happiness_{year}.csv"
+        file_path = os.path.join(base_path, f"world_happiness_{year}.csv")
 
         logger.info(f"Loading {file_path}")
 
@@ -260,9 +256,9 @@ def summary_report(df):
     significant_corrs = [c for c in correlations if c['p_value'] < adjusted_alpha]
     if significant_corrs:
         strongest = max(significant_corrs, key=lambda x: abs(x['r']))
-        logger.info(f"Strongest predictor of happiness (after Bonferroni correction): {strongest['variable']} with correlation r={strongest['r']:.4f} (p={strongest['p_value']:.4f})")
+        logger.info(f"FINAL ANSWER — Strongest predictor of happiness after Bonferroni correction: {strongest['variable']} (r={strongest['r']:.4f}, p={strongest['p_value']:.4f})")
     else:
-        logger.info("No variables remain significantly correlated with happiness after Bonferroni correction.")
+        logger.info("FINAL ANSWER — No variables remain significantly correlated with happiness after Bonferroni correction.")
 
 
 @flow
@@ -276,5 +272,3 @@ def happiness_pipeline():
 
 if __name__ == "__main__":
     happiness_pipeline()
-
-

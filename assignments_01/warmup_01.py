@@ -1,4 +1,3 @@
-
 #---packages---
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -29,7 +28,7 @@ print(f"Data types")
 print(df.dtypes)
 
 #---Pandas Question 2----
-print ( f"Pandas Question 2: {len(df[df.grade > 80])}" )
+print ( f"Pandas Question 2: {len(df[(df.grade > 80) & (df.passed == True)])}" )
 print(df[(df.grade > 80) & (df.passed == True)])
 
 #---Pandas Question 3----
@@ -118,10 +117,10 @@ print("Matplotlib Question 2")
 subjects = ["Math", "Science", "English", "History"]
 scores   = [88, 92, 75, 83]
 
-plt.bar(subjects,scores)
+plt.bar(subjects, scores)
 plt.title("Subject Scores")
-plt.xlabel("subject")
-plt.ylabel("scores")
+plt.xlabel("Subject")
+plt.ylabel("Score")
 plt.show()
 
 #---Matplotlib Question 3---
@@ -255,6 +254,7 @@ print(f"T-stat and P-value: t-statistic = {t_stat}, p-value = {p_value}")
 t_stat, p_value= stats.ttest_ind(group_a, group_b, alternative="less")  
 print(f"Hypothesis Testing Question 5 T-stat and P-value: t-statistic = {t_stat}, p-value = {p_value}")
 #---Hypothesis Question 6---
+print("Hypothesis Testing Question 6")
 t_stat_ab, p_value_ab = stats.ttest_ind(group_a, group_b)
 diff = np.mean(group_b) - np.mean(group_a)
 print(f"Group B scored about {diff:.1f} points higher than Group A on average (t={t_stat_ab:.2f}, p={p_value_ab:.4f}). Since p < 0.05, this difference is unlikely to be due to chance.")

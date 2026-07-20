@@ -31,10 +31,9 @@ def pipeline_flow():
     return summary
 
 if __name__ == "__main__":
-    result = pipeline_flow(arr)
+    result = pipeline_flow()
     for key, value in result.items():
         print(f"{key}: {value}")
-        
-        #---Prefect might be too much overhead for this simple pipeline since it isn't much to keep track of, but it can be useful for more complex workflows with dependencies and scheduling.
-        #---Some scenarios that prefect might be useful include data ingestion pipelines, ETL processes, and machine learning workflows where tasks need to be orchestrated and monitored.
- 
+
+#---Prefect might be too much overhead for this simple pipeline since it isn't much to keep track of, but it can be useful for more complex workflows with dependencies and scheduling.
+#---Some scenarios that prefect might be useful include data ingestion pipelines, ETL processes, and machine learning workflows where tasks need to be orchestrated and monitored.
