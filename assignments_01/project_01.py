@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
-
 # task 1 load mutiple years of data 
 @task(retries=3, retry_delay_seconds=2)
 def process_happiness_data():
@@ -37,14 +36,14 @@ def process_happiness_data():
     merged_df["Happiness"] = merged_df["Happiness score"].fillna(
     merged_df["Ladder score"]
 )
-    os.makedirs("outputs", exist_ok=True)
+    os.makedirs("assignments_01/outputs", exist_ok=True)
 
     merged_df.to_csv(
-        "outputs/merged_happiness.csv",
+        "assignments_01/outputs/merged_happiness.csv",
         index=False
     )
 
-    logger.info("Merged dataset saved to outputs/merged_happiness.csv")
+    logger.info("Merged dataset saved to assignments_01/outputs/merged_happiness.csv")
 
     return merged_df
 
@@ -87,8 +86,8 @@ def visual_exploration(df):
     plt.ylabel("Frequency")
     plt.grid(axis='y', alpha=0.3)
     plt.tight_layout()
-    plt.savefig("outputs/happiness_histogram.png", dpi=300)
-    logger.info("Histogram saved to outputs/happiness_histogram.png")
+    plt.savefig("assignments_01/outputs/happiness_histogram.png", dpi=300)
+    logger.info("Histogram saved to assignments_01/outputs/happiness_histogram.png")
     plt.close()
 
     # Plot 2: Boxplot by year
@@ -98,8 +97,8 @@ def visual_exploration(df):
     plt.xlabel("Year")
     plt.ylabel("Happiness Score")
     plt.grid(True)
-    plt.savefig("outputs/happiness_by_year.png", dpi=300)
-    logger.info("Boxplot saved to outputs/happiness_by_year.png")
+    plt.savefig("assignments_01/outputs/happiness_by_year.png", dpi=300)
+    logger.info("Boxplot saved to assignments_01/outputs/happiness_by_year.png")
     plt.close()
 
     # Plot 3: Scatter plot (GDP vs Happiness)
@@ -109,8 +108,8 @@ def visual_exploration(df):
     plt.xlabel("GDP per Capita")
     plt.ylabel("Happiness Score")
     plt.grid(True)
-    plt.savefig("outputs/gdp_vs_happiness.png", dpi=300)
-    logger.info("Scatter plot saved to outputs/gdp_vs_happiness.png")
+    plt.savefig("assignments_01/outputs/gdp_vs_happiness.png", dpi=300)
+    logger.info("Scatter plot saved to assignments_01/outputs/gdp_vs_happiness.png")
     plt.close()
 
     # Plot 4: Correlation heatmap
@@ -120,8 +119,8 @@ def visual_exploration(df):
     sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='coolwarm', center=0)
     plt.title("Correlation Matrix of Numeric Variables")
     plt.tight_layout()
-    plt.savefig("outputs/correlation_heatmap.png", dpi=300)
-    logger.info("Correlation heatmap saved to outputs/correlation_heatmap.png")
+    plt.savefig("assignments_01/outputs/correlation_heatmap.png", dpi=300)
+    logger.info("Correlation heatmap saved to assignments_01/outputs/correlation_heatmap.png")
     plt.close()
     
 # task 4 hypothesis testing
