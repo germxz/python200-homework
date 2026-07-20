@@ -25,13 +25,16 @@ def process_happiness_data():
             decimal=","
         )
 
+        # Account for raw-file quirk: some years call the happiness column
+        # "Ladder score" instead of "Happiness score". Standardize the name.
+        if "Ladder score" in df.columns:
+            df = df.rename(columns={"Ladder score": "Happiness score"})
+
         df["Year"] = year
         all_dataframes.append(df)
 
     merged_df = pd.concat(all_dataframes, ignore_index=True)
-    merged_df["Happiness"] = merged_df["Happiness score"].fillna(
-    merged_df["Ladder score"]
-)
+
     os.makedirs("assignments_01/outputs", exist_ok=True)
 
     merged_df.to_csv(
@@ -49,19 +52,19 @@ def process_happiness_data():
 def descriptive_statistics(df):
     logger = get_run_logger()
 
-    mean = df["Happiness"].mean()
-    median = df["Happiness"].median()
-    std = df["Happiness"].std()
+    mean = df["Happiness score"].mean()
+    median = df["Happiness score"].median()
+    std = df["Happiness score"].std()
 
     logger.info(f"Mean Happiness: {mean:.2f}")
     logger.info(f"Median Happiness: {median:.2f}")
     logger.info(f"Standard Deviation: {std:.2f}")
 
-    year_means = df.groupby("Year")["Happiness"].mean()
+    year_means = df.groupby("Year")["Happiness score"].mean()
     logger.info(f"\nAverage Happiness by Year:\n{year_means}")
 
     region_means = (
-        df.groupby("Regional indicator")["Happiness"]
+        df.groupby("Regional indicator")["Happiness score"]
         .mean()
         .sort_values(ascending=False)
     )
@@ -76,7 +79,7 @@ def visual_exploration(df):
     
     # Plot 1: Histogram
     plt.figure(figsize=(10, 6))
-    plt.hist(df["Happiness"], bins=30, edgecolor='black', alpha=0.7)
+    plt.hist(df["Happiness score"], bins=30, edgecolor='black', alpha=0.7)
     plt.title("Distribution of Happiness Scores Across All Years")
     plt.xlabel("Happiness Score")
     plt.ylabel("Frequency")
@@ -88,7 +91,7 @@ def visual_exploration(df):
 
     # Plot 2: Boxplot by year
     plt.figure(figsize=(12, 6))
-    sns.boxplot(data=df, x="Year", y="Happiness")
+    sns.boxplot(data=df, x="Year", y="Happiness score")
     plt.title("Happiness Score Distribution by Year")
     plt.xlabel("Year")
     plt.ylabel("Happiness Score")
@@ -99,7 +102,7 @@ def visual_exploration(df):
 
     # Plot 3: Scatter plot (GDP vs Happiness)
     plt.figure(figsize=(12, 6))
-    sns.scatterplot(data=df, x="GDP per capita", y="Happiness", hue="Year", palette="viridis")
+    sns.scatterplot(data=df, x="GDP per capita", y="Happiness score", hue="Year", palette="viridis")
     plt.title("GDP Per Capita vs Happiness Score")
     plt.xlabel("GDP per Capita")
     plt.ylabel("Happiness Score")
@@ -125,8 +128,8 @@ def hypothesis_testing(df):
     logger = get_run_logger()
     
     # ===== TEST 1: 2019 vs 2020 (Pandemic) =====
-    data_2019 = df[df["Year"] == 2019]["Happiness"]
-    data_2020 = df[df["Year"] == 2020]["Happiness"]
+    data_2019 = df[df["Year"] == 2019]["Happiness score"]
+    data_2020 = df[df["Year"] == 2020]["Happiness score"]
     
     t_stat, p_value = stats.ttest_ind(data_2019, data_2020)
     
@@ -145,8 +148,8 @@ def hypothesis_testing(df):
         logger.info(f"  Interpretation: No significant change in happiness between 2019 and 2020 (p >= 0.05).")
     
     # ===== Test 2: North America/ANZ vs Sub-Saharan Africa) =====
-    north_america = df[df["Regional indicator"] == "North America and ANZ"]["Happiness"]
-    sub_saharan = df[df["Regional indicator"] == "Sub-Saharan Africa"]["Happiness"]
+    north_america = df[df["Regional indicator"] == "North America and ANZ"]["Happiness score"]
+    sub_saharan = df[df["Regional indicator"] == "Sub-Saharan Africa"]["Happiness score"]
     
     t_stat_2, p_value_2 = stats.ttest_ind(north_america, sub_saharan)
     
@@ -173,7 +176,7 @@ def correlation_analysis(df):
     numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
     
     # Remove non-explanatory columns
-    exclude = ['Happiness', 'Year']
+    exclude = ['Happiness score', 'Year']
     numeric_cols = [col for col in numeric_cols if col not in exclude]
     
     logger.info(f"Testing correlations for {len(numeric_cols)} variables:")
@@ -181,10 +184,10 @@ def correlation_analysis(df):
     correlations = []
     
     for col in numeric_cols:
-        valid_data = df[[col, 'Happiness']].dropna()
+        valid_data = df[[col, 'Happiness score']].dropna()
         
         if len(valid_data) > 0:
-            r, p_value = stats.pearsonr(valid_data[col], valid_data['Happiness'])
+            r, p_value = stats.pearsonr(valid_data[col], valid_data['Happiness score'])
             correlations.append({'variable': col, 'r': r, 'p_value': p_value})
             logger.info(f"  {col}: r={r:.4f}, p={p_value:.4f}")
     
@@ -218,7 +221,7 @@ def summary_report(df):
     ))
     
     # 2. Top 3 and bottom 3 regions by mean happiness
-    region_means = df.groupby("Regional indicator")["Happiness"].mean().sort_values(ascending=False)
+    region_means = df.groupby("Regional indicator")["Happiness score"].mean().sort_values(ascending=False)
     top_3_regions = region_means.head(3)
     bottom_3_regions = region_means.tail(3)
     
@@ -226,8 +229,8 @@ def summary_report(df):
     logger.info("Bottom 3 regions by mean happiness: {}".format(", ".join([f"{r} ({s:.2f})" for r, s in bottom_3_regions.items()])))
     
     # 3. 2019 vs 2020 t-test result
-    data_2019 = df[df["Year"] == 2019]["Happiness"]
-    data_2020 = df[df["Year"] == 2020]["Happiness"]
+    data_2019 = df[df["Year"] == 2019]["Happiness score"]
+    data_2020 = df[df["Year"] == 2020]["Happiness score"]
     t_stat, p_value = stats.ttest_ind(data_2019, data_2020)
     mean_2019 = data_2019.mean()
     mean_2020 = data_2020.mean()
@@ -239,14 +242,14 @@ def summary_report(df):
     
     # 4. Variable most strongly correlated (after Bonferroni)
     numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
-    exclude = ['Happiness', 'Year']
+    exclude = ['Happiness score', 'Year']
     numeric_cols = [col for col in numeric_cols if col not in exclude]
     
     correlations = []
     for col in numeric_cols:
-        valid_data = df[[col, 'Happiness']].dropna()
+        valid_data = df[[col, 'Happiness score']].dropna()
         if len(valid_data) > 0:
-            r, p_val = stats.pearsonr(valid_data[col], valid_data['Happiness'])
+            r, p_val = stats.pearsonr(valid_data[col], valid_data['Happiness score'])
             correlations.append({'variable': col, 'r': r, 'p_value': p_val})
     
     num_tests = len(correlations)

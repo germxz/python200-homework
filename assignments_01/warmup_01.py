@@ -177,7 +177,7 @@ print("Descriptive Stats Question 3")
 group_a = [55, 60, 63, 70, 68, 62, 58, 65]
 group_b = [75, 80, 78, 90, 85, 79, 82, 88]
 
-plt.boxplot([group_a, group_b], tick_labels=["Group A", "Group B"]) #Tick_labels bcs labels is now outdated
+plt.boxplot([group_a, group_b], labels=["Group A", "Group B"])
 plt.title("Score Comparison")
 plt.show()
 

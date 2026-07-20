@@ -35,5 +35,14 @@ if __name__ == "__main__":
     for key, value in result.items():
         print(f"{key}: {value}")
 
-#---Prefect might be too much overhead for this simple pipeline since it isn't much to keep track of, but it can be useful for more complex workflows with dependencies and scheduling.
-#---Some scenarios that prefect might be useful include data ingestion pipelines, ETL processes, and machine learning workflows where tasks need to be orchestrated and monitored.
+#--- Reflection Question 1: Is Prefect worth the overhead for this pipeline?
+#--- For a simple three-step pipeline like this, Prefect is probably more overhead than
+#--- necessary. Plain Python functions already work fine here, and adding @task/@flow
+#--- decorators, the Prefect runtime, and run tracking adds complexity without much
+#--- benefit at this small scale.
+
+#--- Reflection Question 2: In what scenarios would Prefect be useful?
+#--- Prefect becomes valuable for larger workflows: data ingestion pipelines that run
+#--- on a schedule, ETL processes with many dependent steps, and machine learning
+#--- workflows where you need automatic retries on failure, logging, monitoring, and
+#--- orchestration of tasks that depend on each other.
