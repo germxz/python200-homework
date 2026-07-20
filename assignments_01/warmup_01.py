@@ -3,10 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-import scipy.stats as stats
 from scipy import stats
 from scipy.stats import pearsonr
-import seaborn as sns
 
 #Pandas review
 
@@ -21,11 +19,8 @@ df = pd.DataFrame(data)
 #---Pandas Question 1----
 print("Pandas Question 1:")
 print(f"First 3 rows:\n{df.head(3)}")
-print(df.head(3))
 print(f"Shape: {df.shape}")
-print(df.shape)
-print(f"Data types")
-print(df.dtypes)
+print(f"Data types:\n{df.dtypes}")
 
 #---Pandas Question 2----
 print ( f"Pandas Question 2: {len(df[(df.grade > 80) & (df.passed == True)])}" )
@@ -177,7 +172,7 @@ print("Descriptive Stats Question 3")
 group_a = [55, 60, 63, 70, 68, 62, 58, 65]
 group_b = [75, 80, 78, 90, 85, 79, 82, 88]
 
-plt.boxplot([group_a, group_b], labels=["Group A", "Group B"])
+plt.boxplot([group_a, group_b], tick_labels=["Group A", "Group B"])
 plt.title("Score Comparison")
 plt.show()
 

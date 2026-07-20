@@ -10,12 +10,16 @@ from scipy import stats
 def process_happiness_data():
     logger = get_run_logger()
 
-    base_path = "assignments/resources/happiness_project"
+    base_path = (
+        "https://raw.githubusercontent.com/"
+        "Code-the-Dream-School/python-200-v1/"
+        "main/assignments/resources/happiness_project"
+    )
 
     all_dataframes = [] 
 
     for year in range(2015, 2025):
-        file_path = os.path.join(base_path, f"world_happiness_{year}.csv")
+        file_path =  f"{base_path}/world_happiness_{year}.csv"
 
         logger.info(f"Loading {file_path}")
 
@@ -29,6 +33,12 @@ def process_happiness_data():
         # "Ladder score" instead of "Happiness score". Standardize the name.
         if "Ladder score" in df.columns:
             df = df.rename(columns={"Ladder score": "Happiness score"})
+
+        # Verify the columns downstream tasks depend on exist after standardizing
+        required_cols = ["Happiness score", "GDP per capita", "Regional indicator"]
+        missing = [c for c in required_cols if c not in df.columns]
+        if missing:
+            logger.warning(f"{file_path} is missing expected columns: {missing}")
 
         df["Year"] = year
         all_dataframes.append(df)
