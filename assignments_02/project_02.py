@@ -108,3 +108,91 @@ print(f"Task 4 R²:    {base_model.score(Xb_test, yb_test):.4f}")
 # R² of about 0.09 means failures alone explains under 10% of the variation in G3.
 # That is lower than the -0.29 correlation might suggest, but correlation squared is
 # about 0.086, so it lines up exactly. One feature is not enough.
+
+# --- Task 5: Full Model ---
+feature_cols = ["age", "Medu", "Fedu", "traveltime", "studytime", "failures",
+                "absences", "freetime", "goout", "Walc", "schoolsup",
+                "internet", "higher", "activities", "sex"]
+X = df_clean[feature_cols].values
+y = df_clean["G3"].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+full_model = LinearRegression()
+full_model.fit(X_train, y_train)
+y_pred = full_model.predict(X_test)
+
+print(f"Task 5 train R²: {full_model.score(X_train, y_train):.4f}")
+print(f"Task 5 test R²:  {full_model.score(X_test, y_test):.4f}")
+print(f"Task 5 RMSE:     {np.sqrt(np.mean((y_pred - y_test) ** 2)):.4f}")
+
+for name, coef in zip(feature_cols, full_model.coef_):
+    print(f"{name:12s}: {coef:+.3f}")
+    
+# --- Task 6: Evaluate and Summarize ---
+plt.figure()
+plt.scatter(y_pred, y_test, alpha=0.6)
+
+lims = [min(y_pred.min(), y_test.min()), max(y_pred.max(), y_test.max())]
+plt.plot(lims, lims, "k--")
+
+plt.title("Predicted vs Actual (Full Model)")
+plt.xlabel("Predicted G3")
+plt.ylabel("Actual G3")
+plt.savefig(os.path.join(OUT, "predicted_vs_actual_g3.png"))
+plt.close()
+
+# The predictions bunch into a narrow band around 10-13 while the actual grades spread
+# across roughly 4-20. That is the signature of a weak model: it hedges toward the mean
+# instead of committing. Error is worst at both extremes -- high scorers are badly
+# underpredicted, low scorers overpredicted -- and tightest in the middle.
+# A point above the diagonal means the student scored higher than predicted; below the
+# diagonal means they scored lower than predicted.
+
+# --- Summary ---
+# After dropping the 38 students with G3=0, the dataset holds 357 rows, split into
+# 285 for training and 72 for testing.
+#
+# The full model reaches a test R² of about 0.26 with an RMSE near 2.66. On a 0-20
+# scale that means a typical prediction is off by roughly 2.7 points -- around a letter
+# grade and a half. The model explains about a quarter of why students score differently,
+# and the rest comes from things this data does not capture.
+#
+# Largest positive coefficient: internet at about +1.04, home internet access predicting
+# roughly a point higher. It likely stands in for household resources generally rather
+# than the connection itself.
+# Largest negative coefficient: schoolsup at about -2.26. Receiving school support
+# predicts a lower grade because support is assigned to students already struggling --
+# the flag reports prior difficulty, it does not cause it.
+#
+# Most surprising result: absences collapsed from a -0.21 standalone correlation to a
+# coefficient near -0.06 once other features were present. A variable can matter on its
+# own and still contribute nothing unique to a model.
+
+# --- Neglected Feature: The Power of G1 ---
+feature_cols_g1 = feature_cols + ["G1"]
+X_g1 = df_clean[feature_cols_g1].values
+
+Xg_train, Xg_test, yg_train, yg_test = train_test_split(
+    X_g1, y, test_size=0.2, random_state=42
+)
+
+g1_model = LinearRegression()
+g1_model.fit(Xg_train, yg_train)
+print(f"Test R² with G1: {g1_model.score(Xg_test, yg_test):.4f}")
+
+# R² jumps from ~0.26 to ~0.76. High R² does not mean G1 causes G3 -- both are measures
+# of the same underlying ability in the same class, taken months apart. G1 predicts G3
+# for the same reason your height last year predicts your height this year.
+#
+# As an early-warning tool this model is close to useless. By the time G1 exists, the
+# first grading period is already over and teachers can see who is struggling without a
+# model. Anything G1 tells you, a gradebook tells you sooner.
+#
+# To intervene before G1, educators would need signals available at enrollment:
+# past failures, prior-year attendance, whether the student is already flagged for
+# support, and family education background. Those are exactly the weak-but-real
+# predictors in the Task 5 model. A 0.26 R² model that works in September beats a
+# 0.76
