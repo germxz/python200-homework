@@ -51,8 +51,8 @@ plt.scatter(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1], marker="X
 plt.title("K-means Clusters")
 plt.xlabel("feature 1")
 plt.ylabel("feature 2")
-plt.savefig("outputs/kmeans_clusters.png")
-plt.show()
+plt.savefig(os.path.join(OUT, "kmeans_clusters.png"))
+plt.close()
 
 # In the scatter plot, I see three color coded clusters of plotted points with an "X" in the center.
 
@@ -68,14 +68,13 @@ cost   = 200 * age + 15000 * smoker + np.random.normal(0, 3000, num_patients)
 
 #Q1
 print("Q1")
-plt.scatter(age, cost, c=smoker, cmap= "coolwarm")
+plt.figure()
+plt.scatter(age, cost, c=smoker, cmap="coolwarm")
 plt.title("Medical Cost vs Age")
 plt.xlabel("Age")
 plt.ylabel("Cost")
-plt.savefig("outputs/cost_vs_age.png")
-plt.show()
-
-
+plt.savefig(os.path.join(OUT, "cost_vs_age.png"))
+plt.close()
 # I see in this scatter plot that it is easy to form a boundary between smokers and non smokers. Without looking at a legend, it is safe to assume that the smokers are the ones who pay more for healthcare and the red plotted points prove it.
 
 #Q2 
@@ -133,7 +132,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual")
 plt.xlabel("Predicted Cost")
 plt.ylabel("Actual Cost")
-plt.savefig("outputs/predicted_vs_actual_cost.png")
+plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
 plt.close()
 
 # Above the diagonal: actual cost was higher than predicted, the model underestimated.
