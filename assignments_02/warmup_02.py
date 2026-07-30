@@ -23,10 +23,10 @@ model.fit(years, salary) # (x, y)
 
 year4= model.predict([[4]])[0] # x = 4
 year8= model.predict([[8]])[0] # x = 8
-print(f"The expected salary for someone working 4 years is ${year4:,.2f}") # --- :,.2ft = thousands and decimal place separator
+print(f"The expected salary for someone working 4 years is ${year4:,.2f}")
 print(f"The expected salary for someone working 8 years is ${year8:,.2f}")
-print(f" The model coefficient is: {model.coef_[0]:,.2f}")
-print(f"The model intercept is: {model.intercept_:.2f}")
+print(f"The model coefficient is: {model.coef_[0]:,.2f}")
+print(f"The model intercept is: {model.intercept_:,.2f}")
 
 # Q2
 x = np.array([10, 20, 30, 40, 50])
@@ -51,8 +51,8 @@ plt.figure()
 plt.scatter(X_clusters[:,0], X_clusters[:,1] ,c=labels)
 plt.scatter(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1], marker="X",s=100, c="black")
 plt.title("K-means Clusters")
-plt.xlabel("feature 1")
-plt.ylabel("feature 2")
+plt.xlabel("Feature 1 (synthetic)")
+plt.ylabel("Feature 2 (synthetic)")
 plt.savefig(os.path.join(OUT, "kmeans_clusters.png"))
 plt.close()
 
