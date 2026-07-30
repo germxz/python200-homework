@@ -7,6 +7,9 @@ from sklearn.cluster import KMeans
 from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 
+BASE = os.path.dirname(__file__)
+OUT = os.path.join(BASE, "outputs")
+os.makedirs(OUT, exist_ok=True)
 #Q1
 
 print("Q1")
@@ -26,10 +29,10 @@ print(f" The model coefficient is: {model.coef_[0]:,.2f}")
 print(f"The model intercept is: {model.intercept_:.2f}")
 
 # Q2
-print("Q2")
 x = np.array([10, 20, 30, 40, 50])
-print(x.reshape(5, 1))
-
+print("Original shape:", x.shape)
+x = x.reshape(-1, 1)
+print("New shape:", x.shape)
 # sklearn expects the data to be 2D in order to prevent ambiguity. It organizes our data so it is all processed correctly when runnning our models and not let it get mistaken as a feature or as a sample.
 
 # Q3
@@ -39,8 +42,10 @@ X_clusters, _ = make_blobs(n_samples=120, centers=3, cluster_std=0.8, random_sta
 kmeans = KMeans(n_clusters=3, random_state=42)
 kmeans.fit(X_clusters)
 labels = kmeans.predict(X_clusters)
-print(kmeans.cluster_centers_)
-print(np.bincount(labels))
+print("Cluster centers:\n", kmeans.cluster_centers_)
+print("Points per cluster:", np.bincount(labels))
+
+plt.figure()
 plt.scatter(X_clusters[:,0], X_clusters[:,1] ,c=labels)
 plt.scatter(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1], marker="X",s=100, c="black")
 plt.title("K-means Clusters")
@@ -68,7 +73,7 @@ plt.title("Medical Cost vs Age")
 plt.xlabel("Age")
 plt.ylabel("Cost")
 plt.savefig("outputs/cost_vs_age.png")
-plt.show
+plt.show()
 
 
 # I see in this scatter plot that it is easy to form a boundary between smokers and non smokers. Without looking at a legend, it is safe to assume that the smokers are the ones who pay more for healthcare and the red plotted points prove it.
@@ -90,8 +95,8 @@ Question3 = LinearRegression()
 Question3.fit(X_train, Y_train)
 Y_pred = Question3.predict(X_test)
 
-print(f"Q3 Slope:{Question3.coef_[0]}") 
-print(f"Q3 Intercept:{Question3.intercept_}")
+print(f"Q3 Slope: {Question3.coef_[0]}") 
+print(f"Q3 Intercept: {Question3.intercept_}")
 print(f"Q3 RMSE: {np.sqrt(np.mean((Y_pred - Y_test) ** 2))}")
 print(f"Q3 R² on the test set: { Question3.score(X_test, Y_test)}")
 

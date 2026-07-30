@@ -79,8 +79,9 @@ plt.tight_layout()
 plt.savefig(os.path.join(OUT, "feature_correlations.png"))
 plt.close()
 
-# Puts every feature on one axis. Nothing is strongly correlated -- the largest
-# magnitude is well under 0.4 -- which sets expectations low for the R² in Task 5.
+# Every feature's correlation with G3 on one axis. failures is the only bar past
+# -0.30; Medu and studytime are the strongest positives but both under +0.25.
+# No single feature carries much signal, which caps what Task 5's R² can reach.
 
 # --- Task 4: Baseline Model ---
 from sklearn.linear_model import LinearRegression
@@ -141,7 +142,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual (Full Model)")
 plt.xlabel("Predicted G3")
 plt.ylabel("Actual G3")
-plt.savefig(os.path.join(OUT, "predicted_vs_actual_g3.png"))
+plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
 plt.close()
 
 # The predictions bunch into a narrow band around 10-13 while the actual grades spread
@@ -195,4 +196,4 @@ print(f"Test R² with G1: {g1_model.score(Xg_test, yg_test):.4f}")
 # past failures, prior-year attendance, whether the student is already flagged for
 # support, and family education background. Those are exactly the weak-but-real
 # predictors in the Task 5 model. A 0.26 R² model that works in September beats a
-# 0.76
+# 0.76 R² model that only works in June. Usefulness is about timing, not fit.
