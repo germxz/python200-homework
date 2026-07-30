@@ -142,7 +142,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual (Full Model)")
 plt.xlabel("Predicted G3")
 plt.ylabel("Actual G3")
-plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
+plt.savefig(os.path.join(OUT, "predicted_vs_actual_g3.png"))
 plt.close()
 
 # The predictions bunch into a narrow band around 10-13 while the actual grades spread

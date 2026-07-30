@@ -99,7 +99,8 @@ print(f"Q3 Intercept: {Question3.intercept_}")
 print(f"Q3 RMSE: {np.sqrt(np.mean((Y_pred - Y_test) ** 2))}")
 print(f"Q3 R² on the test set: { Question3.score(X_test, Y_test)}")
 
-# Slope is the rate of change in something so when it comes to rising medical costs, you can calculate the slope to forecast out when it will get too expensive to buy. 
+# Slope of about $197 means each additional year of age predicts about $197 more
+# in annual medical cost, when age is used as the only predictor.
 
 # Q4
 
@@ -116,9 +117,9 @@ print(f"Q4 R^2: {Question4.score(X_full_test, Y_full_test)}")
 print("age coefficient:    ", Question4.coef_[0])
 print("smoker coefficient: ", Question4.coef_[1])
 
-# R^2 jumped from ~0.55 (age only) to ~0.97 with smoker added, so yes, it helps a lot.
-# Smoker coefficient: holding age constant, being a smoker adds roughly $15,000
-# to predicted annual medical cost.
+# R^2 jumped from ~0.07 (age only) to ~0.77 with smoker added, so yes, it helps a lot.
+# Smoker coefficient: it represents the added predicted cost when smoker = 1 (a smoker)
+# versus smoker = 0 (a non-smoker), holding age constant -- roughly $14,500/year more.
 
 # Q5
 
@@ -132,7 +133,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual")
 plt.xlabel("Predicted Cost")
 plt.ylabel("Actual Cost")
-plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
+plt.savefig(os.path.join(OUT, "predicted_vs_actual_cost.png"))
 plt.close()
 
 # Above the diagonal: actual cost was higher than predicted, the model underestimated.
