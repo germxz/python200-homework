@@ -131,7 +131,22 @@ print(f"Task 5 RMSE:     {np.sqrt(np.mean((y_pred - y_test) ** 2)):.4f}")
 
 for name, coef in zip(feature_cols, full_model.coef_):
     print(f"{name:12s}: {coef:+.3f}")
-    
+
+# Train R² (0.2346) and test R² (0.2634) are close -- if anything test is a touch
+# higher, which is just noise from this particular split, not a red flag. A big gap
+# (train much higher than test) would mean overfitting; this model isn't doing that,
+# it's just weak everywhere.
+#
+# No sign looks wrong given the data: goout and Walc are negative (going out/drinking
+# cuts into study time), Medu/Fedu/studytime are positive (more education/study time,
+# higher grades). failures (-0.800) dominates every other coefficient.
+#
+# In production I'd keep failures, studytime, goout, Walc, Medu/Fedu, and sex -- their
+# signs make sense and failures alone carries most of the model's signal. I'd drop
+# schoolsup: it flags students already struggling rather than causing lower grades, so
+# it would mislead predictions on new students. I'd also drop freetime and activities,
+# whose coefficients (+0.014, +0.061) are small enough to be noise.
+
 # --- Task 6: Evaluate and Summarize ---
 plt.figure()
 plt.scatter(y_pred, y_test, alpha=0.6)

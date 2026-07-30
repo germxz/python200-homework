@@ -33,7 +33,9 @@ x = np.array([10, 20, 30, 40, 50])
 print("Original shape:", x.shape)
 x = x.reshape(-1, 1)
 print("New shape:", x.shape)
-# sklearn expects the data to be 2D in order to prevent ambiguity. It organizes our data so it is all processed correctly when runnning our models and not let it get mistaken as a feature or as a sample.
+# sklearn's convention is X.shape = (n_samples, n_features). A 1D array like (5,) is
+# ambiguous -- it could mean 5 samples of 1 feature each, or 1 sample of 5 features.
+# Reshaping to (5, 1) makes it explicit: 5 rows (samples), 1 column (feature).
 
 # Q3
 print("Q3")
@@ -94,11 +96,10 @@ Question3 = LinearRegression()
 Question3.fit(X_train, Y_train)
 Y_pred = Question3.predict(X_test)
 
-print(f"Q3 Slope: {Question3.coef_[0]}") 
+print(f"Q3 Slope: {Question3.coef_[0]}")
 print(f"Q3 Intercept: {Question3.intercept_}")
 print(f"Q3 RMSE: {np.sqrt(np.mean((Y_pred - Y_test) ** 2))}")
-print(f"Q3 R² on the test set: { Question3.score(X_test, Y_test)}")
-
+print(f"Q3 R² on the test set: {Question3.score(X_test, Y_test)}")
 # Slope of about $197 means each additional year of age predicts about $197 more
 # in annual medical cost, when age is used as the only predictor.
 
