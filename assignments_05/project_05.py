@@ -73,7 +73,7 @@ def rewrite_bullets(bullets: list[str]) -> list[dict]:
             print("Original:",item["original"])          
             print("Improved:",item["improved"])          
             print("-" * 40)
-            return data
+        return data
     except json.JSONDecodeError:
         print("Could not parse JSON. Raw response:")
         print(raw)
