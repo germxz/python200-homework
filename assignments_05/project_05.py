@@ -84,22 +84,16 @@ def rewrite_bullets(bullets: list[str]) -> list[dict]:
         print(raw)
         return []
 
-    print(format_bullets(data))
+    # Print both versions of each bullet side by side.
+    # The bullets go into the prompt as a "- " list and the model tends to copy that dash
+    # into "original", so strip it back off before displaying.
+    for i, item in enumerate(data, start=1):
+        print(f"Bullet {i}")
+        print(f"  BEFORE: {item['original'].lstrip('- ').strip()}")
+        print(f"  AFTER:  {item['improved'].lstrip('- ').strip()}")
+        print("-" * 40)
+
     return data
-
-
-def format_bullets(rewritten: list[dict]) -> str:
-    # Returns a string rather than printing directly, so the chatbot loop can store the
-    # same text in the conversation history that the user sees on screen.
-    lines = []
-    for i, item in enumerate(rewritten, start=1):
-        # The bullets go into the prompt as a "- " list and the model tends to copy that
-        # dash into "original", so strip it back off before displaying.
-        lines.append(f"Bullet {i}")
-        lines.append(f"  BEFORE: {item['original'].lstrip('- ').strip()}")
-        lines.append(f"  AFTER:  {item['improved'].lstrip('- ').strip()}")
-        lines.append("-" * 40)
-    return "\n".join(lines)
 
 
 # What makes the starter bullets weak: all three describe an activity rather than a result,
@@ -246,8 +240,11 @@ def run_chatbot():
             # Store the real exchange, not a placeholder, so later turns can refer back to
             # the actual rewrites.
             bullet_list = "\n".join(f"- {b}" for b in raw_bullets)
+            rewrite_summary = "\n".join(
+                f"BEFORE: {item['original']}\nAFTER: {item['improved']}" for item in rewritten
+            )
             messages.append({"role": "user", "content": f"{user_input}\n\nHere are my bullet points:\n{bullet_list}"})
-            messages.append({"role": "assistant", "content": format_bullets(rewritten)})
+            messages.append({"role": "assistant", "content": rewrite_summary})
 
         # 6. Check if the user wants a cover letter
         elif "cover letter" in user_input.lower():

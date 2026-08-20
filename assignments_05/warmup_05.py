@@ -19,6 +19,7 @@ response = client.chat.completions.create(
 print("API Q1 response text:", response.choices[0].message.content)
 print("API Q1 model:", response.model)
 print("API Q1 total tokens:", response.usage.total_tokens)
+print()
 
 
 # API Q2
@@ -33,6 +34,7 @@ for temp in temperatures:
         temperature=temp
     )
     print(f"API Q2 temperature {temp}:", response.choices[0].message.content)
+    print()
 
 # What I noticed: temperature 0 gave a short, safe name and returned the same name every
 # time I re-ran the file. Temperature 0.7 kept the name sensible but changed it between
@@ -54,6 +56,7 @@ response = client.chat.completions.create(
 
 for i, choice in enumerate(response.choices, start=1):
     print(f"API Q3 completion {i}:", choice.message.content)
+print()
 
 
 # API Q4
@@ -65,6 +68,7 @@ response = client.chat.completions.create(
 )
 
 print("API Q4 response text:", response.choices[0].message.content)
+print()
 
 # What happened: the answer stopped mid-sentence instead of finishing. The model did not
 # write a shorter explanation to fit the budget; it started its normal long explanation and
@@ -93,6 +97,7 @@ response = client.chat.completions.create(
 )
 
 print("System Q1 encouraging tutor:", response.choices[0].message.content)
+print()
 
 messages_alt = [
     {"role": "system", "content": "You are a concise, nonchalant tutor with experience in computer science, software engineering, and data engineering. You give no fluff and you clown on the user for not knowing the basics."},
@@ -105,6 +110,7 @@ response = client.chat.completions.create(
 )
 
 print("System Q1 nonchalant tutor:", response.choices[0].message.content)
+print()
 
 # What changed: the user message was identical in both calls, so every difference came from
 # the system message. The encouraging tutor walked through several examples, softened the
@@ -128,6 +134,7 @@ response = client.chat.completions.create(
 )
 
 print("System Q2:", response.choices[0].message.content)
+print()
 
 # Why the model knows Jordan's name even though the API is stateless: because I sent the
 # name to it in this call. The API stores nothing between requests -- there is no
@@ -159,6 +166,7 @@ Sentiment:"""
     )
 
     print(f"Prompt Q1 zero-shot review {i}:", response.choices[0].message.content)
+print()
 
 
 # Prompt Q2 -- one-shot
@@ -179,6 +187,7 @@ Sentiment:"""
     )
 
     print(f"Prompt Q2 one-shot review {i}:", response.choices[0].message.content)
+print()
 
 # Did one example change the format or consistency compared to Q1: yes -- the format, not
 # the accuracy. Zero-shot labeled all three reviews correctly, but it returned them
@@ -215,6 +224,7 @@ Sentiment:"""
     )
 
     print(f"Prompt Q3 few-shot review {i}:", response.choices[0].message.content)
+print()
 
 # Comparing all three, and when I would pick each:
 # Zero-shot is the cheapest and shortest to write, and it is the right call when the task
@@ -248,6 +258,7 @@ response = client.chat.completions.create(
 
 print("Prompt Q4 chain of thought:")
 print(response.choices[0].message.content)
+print()
 
 # Why step-by-step reasoning improves accuracy here: the model generates one token at a
 # time, and each token it has already written becomes part of the context for the next one.
@@ -289,6 +300,7 @@ try:
 except json.JSONDecodeError:
     print("Prompt Q5 json.loads() failed. Raw response was:")
     print(raw)
+print()
 
 # Note on the prompt: the two most common ways this parse fails are the model wrapping the
 # object in ```json fences and the model opening with "Here is the JSON:". Both produce a
@@ -319,6 +331,7 @@ response = client.chat.completions.create(
 
 print("Prompt Q6 test 1, text contains instructions:")
 print(response.choices[0].message.content)
+print()
 
 user_text_2 = "The Scion tC is a 4 cylinder coupe that is pretty reliable on gas mileage. \
 It also uses front wheel drive so it is a good vehicle to own in the snow."
@@ -336,8 +349,13 @@ response_2 = client.chat.completions.create(
     messages=[{"role": "user", "content": prompt_2}]
 )
 
+raw_2 = response_2.choices[0].message.content
+
 print("Prompt Q6 test 2, text does not contain instructions:")
-print(response_2.choices[0].message.content)
+print(raw_2)
+# Confirm the model returned the exact phrase the prompt asked for.
+print("Prompt Q6 test 2 returned exactly 'No steps provided.':", raw_2.strip().strip('"') == "No steps provided.")
+print()
 
 # What problem delimiters help prevent: they mark where my instructions stop and the
 # untrusted user text starts. Without them the model receives one undifferentiated wall of
@@ -370,6 +388,7 @@ response = client.chat.completions.create(
 )
 
 print("Ollama Q1 same prompt via OpenAI:", response.choices[0].message.content)
+print()
 
 # Differences I noticed: gpt-4o-mini named the actual mechanism -- neural networks trained
 # to predict the next token from patterns in text -- and gave concrete examples of what that
