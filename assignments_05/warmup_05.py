@@ -192,8 +192,8 @@ Sentiment:"""
 # You can see why they're named the way they are. The zero shot lets the AI answer in it's own form, sometimes being inconsistent.
 # The One-shot mechanism works by giving the agent a single example to show how we want our answers to look like. 
 # The few-shot does the same but multiple times to ensure that the agent really knows what to do in outlying situations. 
-# I would use the one-shot method for this instance since it uses less tokens and it takes less time to type.
-
+# I would use the one-shot method for this instance since it uses less tokens and it takes less time to type. So in short, 
+#zero-shot drifted and returned extra text, one-shot locked it to single words. 
 # PEQ4
 
 problem = f"""A data engineer earns $85,000 per year. She gets a 12% raise, then 6 months later
@@ -216,7 +216,7 @@ response = client.chat.completions.create(
 print(f"PEQ4: {response.choices[0].message.content}")
 
 #The model showed each step — the raise amount, the post-raise salary, then the increase — so I could check the math myself instead of trusting a single number.
-# Asking for step-by-step reasoning makes arithmetic mistakes visible rather than hidden.
+# Asking for step-by-step reasoning makes arithmetic mistakes visible rather than hidden. This allows the model to build its own calculations.
 # PEQ5
 
 
@@ -297,8 +297,9 @@ print(f"PEQ6P2 {raw2}")
 
 #Ollama Q1
 
+# Terminal output from: ollama run qwen3:0.6b "Explain what a large language model is in two sentences."
+
 """
-OLLAMA output:
 A large language model is an AI system designed to understand and generate human-like text, capable of performing tasks like writing, answering questions, or 
 creating content based on vast amounts of training data. It leverages massive datasets and complex algorithms to process and interpret language in a way that 
 mimics natural human thought processes.
