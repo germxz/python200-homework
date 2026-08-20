@@ -1,7 +1,5 @@
 
 #API Q1 
-from xml.etree.ElementTree import PI
-
 
 import json
 from dotenv import load_dotenv
@@ -52,13 +50,14 @@ for i, choice in enumerate(response.choices):
 max_tokens= 15
 response = client.chat.completions.create(
     model="gpt-4o-mini",
-    messages= [{"role":"user" , "content": "explain what a good hedge for inflation is"}],
+    messages= [{"role":"user" , "content": "Explain how neural networks work."}],
     max_tokens=max_tokens
 )
 
 print(f"APIQ4 {response.choices[0].message.content}")
 
-# you might want to use the max tokens option to avoid using more tokens than needed as they are getting more expensive over time. 
+# The model was able to give a brief description of neural networks.
+# You might want to use the max tokens option to avoid using more tokens than needed with extra explanation.
 
 # System Messages and Personas
 
@@ -216,10 +215,8 @@ response = client.chat.completions.create(
 
 print(f"PEQ4: {response.choices[0].message.content}")
 
-#The model works step by step on the problem because it has to do the reasoning to make the calculations. 
-#Also, the user may want to get more insight on a specific step in the problem, so the model is able to pick it out from memory. 
-
-
+#The model showed each step — the raise amount, the post-raise salary, then the increase — so I could check the math myself instead of trusting a single number.
+# Asking for step-by-step reasoning makes arithmetic mistakes visible rather than hidden.
 # PEQ5
 
 
@@ -294,8 +291,8 @@ raw2 = response2.choices[0].message.content
 print(f"PEQ6P2 {raw2}")
 
 # Delimiters help separate instructions and content to avoid confusion within the model.
-# Without it, the model will think that the content we give (user_text2) is part of the instructions leading to incorrect
-
+# Without it, the model will think that the content we give (user_text2) is part of the instructions leading to misinterpretation.
+#without delimiters, someone could paste text containing its own instructions and the model can't tell that apart from yours, so it may follow theirs. 
 #Ollama
 
 #Ollama Q1
@@ -317,7 +314,8 @@ llama_response = client.chat.completions.create(
 
 print(llama_response.choices[0].message.content)
 
-# I notice that the ollama model was showing its thought process and give a pretty vague output. It does not give examples of things it mentions
-# The openAI model was concise with answering the question, while also giving examples of the subject in question. 
-#So the advantage of a local model would be its generalization and no cost of tokens.
+# gpt-4o-mini named actual mechanisms (neural networks, prediction from learned patterns) while qwen said "complex algorithms" and "mimics natural human thought processes" — vaguer, and the thought-process claim is arguably wrong.
+# It does not give examples of things it mentions. The openAI model was concise with answering the question, while also giving examples of the subject in question. 
+#Advantage: free per call, works offline, and your data never leaves your machine (no prompt sent to a company server).
+#Disadvantage: a 0.6B model is much weaker — I saw it produce a vaguer and arguably wrong description. Closing the quality gap means buying real GPU hardware.
 
