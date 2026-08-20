@@ -81,9 +81,9 @@ def rewrite_bullets(bullets: list[str]) -> list[dict]:
 rewrite_bullets(bullets)
 
 # These bullets are weak because they do not explain how the employee helped, 
-# what kind of reports, and what kind of project he was working on. The model 
-# suggested adding information about how he helped the company through 
-# each review using descriptive references.
+# what kind of reports, and what kind of project he was working on. The model
+# suggested adding information about how he helped the company using made up
+# percentages. This was not desirable output.
 
 
 # Task 3 Cover letter generator
@@ -134,7 +134,9 @@ print(generate_cover_letter(job_title, background))
 
 
 # I chose multiple examples because the few-shot method helps increase reliabilty in outputs as the
-# model will reference the given examples.
+# model will reference the given examples. Both outputs still came back with 
+# "I am eager to leverage," which is exactly the cliché the prompt banned. So few-shot controls 
+# shape more reliably than it controls voice.
 
 # Task 4 moderation check 
 
@@ -154,3 +156,80 @@ def is_safe(text: str) -> bool:
 # Tests
 print("Safe input:", is_safe("Can you help me rewrite my resume bullet points?"))
 print("Flagged input:", is_safe("you're so useless i want to break you, set you on fire, and throw you at a government building "))
+
+
+# Task 5 
+def run_chatbot():
+    # 1. Initialize conversation history with your system prompt
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ]
+
+    print("=" * 50)
+    print("Job Application Helper")
+    print("=" * 50)
+    print("I can help you with:")
+    print("  1. Rewriting resume bullet points")
+    print("  2. Drafting a cover letter opening")
+    print("  3. Any other questions about your application")
+    print("\nType 'quit' at any time to exit.\n")
+
+    while True:
+        user_input = input("You: ").strip()
+
+        # 2. Handle exit
+        if user_input.lower() in {"quit", "exit"}:
+            print("\nJob Application Helper: Good luck with your applications!")
+            break
+
+        # 3. Skip empty input
+        if not user_input:
+            continue
+
+        # 4. Run moderation check before doing anything else
+        if not is_safe(user_input):
+            continue  # is_safe() already print 
+        # 5. Check if the user wants to rewrite bullets
+        #    (hint: look for keywords like "bullet" or "resume" in user_input.lower())
+        if "bullet" in user_input.lower() or "resume" in user_input.lower():
+            print("\nJob Application Helper: Paste your bullet points below, one per line.")
+            print("When you're done, type 'DONE' on its own line.\n")
+            raw_bullets = []
+            while True:
+                line = input().strip()
+                if line.upper() == "DONE":
+                    break
+                if line:
+                    raw_bullets.append(line)
+            # YOUR CODE: call rewrite_bullets() and print the results
+            
+            rewrite_bullets(raw_bullets)
+            
+        # 6. Check if the user wants a cover letter
+        elif "cover letter" in user_input.lower():
+            job_title = input("Job Application Helper: What is the job title? ").strip()
+            background = input("Job Application Helper: Briefly describe your background: ").strip()
+            
+            
+            # YOUR CODE: call generate_cover_letter() and print the result
+            print("\n" + generate_cover_letter(job_title, background) +"\n")
+    
+        # 7. Otherwise, handle it as a regular chat turn
+        else:
+    
+            
+            messages.append({"role": "user", "content": user_input})
+            reply = get_completion(messages)
+            print("\nJob Application Helper:", reply, "\n")
+            messages.append({"role": "assistant", "content": reply})
+
+
+if __name__ == "__main__":
+    run_chatbot()
+    
+    
+# If a job seeker were to submit any output from this bot without checking it first,
+# there may be missing info or placeholders in the output making it clear that the text is AI. My model showed "[company]"
+#as a placeholder for a company and that would not pass in a professional setting
+# One guardrail I would add to this project for official release would be a disclaimer advising that all outputs
+# must be human-verified. I can even add a way for users to double check the output and highlight suggested changes.
