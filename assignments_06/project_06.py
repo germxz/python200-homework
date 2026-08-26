@@ -94,5 +94,31 @@ for node in response.source_nodes:
 
 
 
+
 #Step 6: reflection
 
+# 1. The manual semantic RAG implementation (chunking, embedding, and indexing) took
+# roughly 30 lines of code. The equivalent LlamaIndex implementation - loading the
+# documents, building the index, and creating the query engine - took only about
+# 6-8 lines. This shows the real value of using a framework: LlamaIndex handles the
+# chunking strategy, embedding API calls, and vector storage internally behind a
+# couple of function calls, which removes a lot of repetitive, error-prone code and
+# lets you focus on the actual application logic instead of reimplementing the same
+# retrieval infrastructure every time.
+#
+# 2. A different use case where this approach would add genuine value: an HR
+# department could use this to build an internal assistant that answers employee
+# questions about company policies - things like PTO accrual, benefits enrollment
+# deadlines, or parental leave rules - by indexing the actual policy documents.
+# Instead of employees emailing HR or digging through a shared drive full of PDFs,
+# they could ask a direct question and get an answer grounded in the real, current
+# policy text, saving HR staff time on repetitive questions.
+#
+# 3. One failure mode RAG cannot fully prevent, even when retrieval works correctly,
+# is generation-time fabrication. As shown in Step 5, the retriever can return its
+# best-available chunks (even if none are strongly relevant, indicated by low
+# similarity scores), and the LLM can still generate a confident, specific-sounding
+# answer that isn't actually supported by that context. Retrieval succeeding just
+# means the system found the closest matches it had - it doesn't guarantee the
+# generation step will stay faithful to that content instead of filling gaps with
+# its own guesses.

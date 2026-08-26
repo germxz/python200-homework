@@ -335,7 +335,7 @@ print(f"\nQ: {q1}")
 print("A:", response1)
 
 faithfulness_result = faithfulness.evaluate_response(response=response1)
-relevancy_result = relevancy.evaluate_response(query=q, response=response1)
+relevancy_result = relevancy.evaluate_response(query=q1, response=response1)
 
 
 print(f"Faithfulness score: {faithfulness_result.score}")
