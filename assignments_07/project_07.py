@@ -24,9 +24,12 @@ FALLBACK_DIR = PROJECT_ROOT / "assignments" / "resources" / "happiness_project"
 def load_happiness_data() -> dict:
     """Load the World Happiness dataset into memory.
 
-    Loads the merged CSV from DATA_PATH if it exists. Otherwise, falls back to
-    loading and merging all yearly CSV files found in the happiness_project
-    resources folder.
+    Loads the merged CSV from assignments_01/outputs/merged_happiness.csv if
+    it exists. Otherwise, falls back to loading and merging all yearly CSV
+    files found in assignments/resources/happiness_project/. If you need
+    row-level data beyond what this tool's summary provides (for example, to
+    build a custom plot), you can load the same file directly yourself with
+    pandas: pd.read_csv("assignments_01/outputs/merged_happiness.csv").
 
     Returns:
         A dict (not a DataFrame) with "shape" (tuple of rows, columns) and
@@ -196,47 +199,62 @@ queries = [
     "Plot happiness_score over the years as a line chart, with one line per region. Save the plot to outputs/happiness_by_region.png.",
 ]
 
-# Task 4: additional queries
-my_query_1 = "What is the correlation between social support and happiness score, and is it stronger or weaker than the GDP correlation?"
-my_query_2 = "Which region had the biggest increase in average happiness score between 2015 and 2024?"
-
-
-def run_guided_queries():
-    """Run the Task 3 guided query sequence and print each response."""
+if __name__ == "__main__":
     for query in queries:
         print(f"\n--- Query: {query} ---")
-        if "Plot" in query:
-            # The plotting task needs row-level data (year x region), which none
-            # of the four tools expose. Passing the real dataframe into the
-            # sandbox lets the agent write correct plotting code against real
-            # data instead of fabricating values.
-            response = agent.run(query, reset=False, additional_args={"df": df})
-        else:
-            response = agent.run(query, reset=False)
+        response = agent.run(query, reset=False)
         print(response)
 
-
-def run_my_queries():
-    """Run the Task 4 custom queries and print each response."""
-    print(f"\n--- Query: {my_query_1} ---")
+    # Task 4: additional queries
+    my_query_1 = "What is the correlation between social support and happiness score, and is it stronger or weaker than the GDP correlation?"
     response_1 = agent.run(my_query_1, reset=False)
+    print(f"\n--- Query: {my_query_1} ---")
     print(response_1)
     # Comment: Triggered a tool call (compute_correlation) — no code writing
     # needed. Social support correlation (r=0.7439) came back stronger than
     # the earlier GDP correlation (r=0.6313).
 
+    my_query_2 = "Which region had the biggest increase in average happiness score between 2015 and 2024?"
+    response_2 = agent.run(my_query_2, reset=False)
     print(f"\n--- Query: {my_query_2} ---")
-    response_2 = agent.run(my_query_2, reset=False, additional_args={"df": df})
     print(response_2)
-    # Comment: Forced the agent to write its own pandas code (groupby + diff
-    # + idxmax), since no tool computes year-over-year regional comparisons.
-    # Result: Central and Eastern Europe had the largest increase (+0.66).
+    # Comment: No tool computes a year-over-year regional comparison, so this
+    # should force the agent to write its own pandas code, loading the CSV
+    # itself via pd.read_csv() (per the system prompt) rather than relying on
+    # any smuggled-in variable.
 
 
-def main():
-    run_guided_queries()
-    run_my_queries()
-
-
-if __name__ == "__main__":
-    main()
+# --- Reflection ---
+#
+# 1. In Query 3, how did the agent communicate whether the correlation was statistically
+#    significant? Did it use the p-value correctly? What threshold did it apply?
+#
+#    The agent's own generated code explicitly compared the p-value against 0.05:
+#    "significant": correlation_result['p_value'] < 0.05
+#    Since compute_correlation returned p_value = 0.0 for the GDP/happiness_score
+#    correlation, this evaluated to True, and the agent reported the relationship
+#    as statistically significant in its final answer. This is the standard alpha =
+#    0.05 threshold, applied correctly given the near-zero p-value.
+#
+# 2. Did any of the agent's responses surprise you — either by being more capable than
+#    you expected, or less? Describe one specific example.
+#
+#    Less capable, in an interesting way: on an early attempt at the plotting query,
+#    the agent tried to build a DataFrame directly from load_happiness_data's return
+#    value (a summary dict with only "shape" and "columns" keys), which failed. Rather
+#    than recognizing that no tool exposed row-level data, it fabricated random values
+#    with `random.uniform(...)` and plotted that fake data as if it were real, labeling
+#    the chart "Simulated Happiness Score." It reported success without flagging that
+#    the underlying data was invented. That was surprising -- I expected a tool-based
+#    agent to fail loudly rather than quietly substitute fake data for real data.
+#
+# 3. What one additional tool would make this agent meaningfully more useful?
+#    Describe what it would do and what kind of question it would help the agent answer.
+#    (You do not need to implement it.)
+#
+#    A tool like get_grouped_average(group_by: str, value_column: str, filter_year:
+#    int | None = None) that returns a dict of group -> mean value (e.g. average
+#    happiness_score per Regional indicator, optionally filtered to a year) would
+#    directly solve the gap above. It would let the agent answer questions like "which
+#    region improved the most?" or "how does average GDP per capita differ by region?"
+#    using a real tool instead of writing ad hoc pandas code (or, worse, guessing).
