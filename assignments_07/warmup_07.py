@@ -5,11 +5,18 @@ from pathlib import Path
 import os
 import json
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # non-interactive backend: a GUI plt.show() would block the script
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
 from smolagents import ToolCallingAgent, OpenAIServerModel, tool
 from smolagents import CodeAgent
+
+# Plots are written here so Q8's "did the dots actually come out green?" is
+# something we can open and check, rather than something we take the agent's
+# word for.
+OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"
 
 
 
@@ -153,9 +160,9 @@ def run_agent(user_prompt: str) -> str:
 ans = run_agent("Convert 100 degrees Celsius to Fahrenheit")
 print(ans)
 
-# Only 1 API call was made. The printed output showed "No tools needed...."
-# and tool_calls=None on the first response, meaning the code went straight to the else
-# branch and returned first_message.content without ever reaching the second API call.
+# That first version only made one API call. The first response had no tool calls,
+# so the code went straight to the else branch and returned the model's direct
+# answer instead of calling the second API endpoint.
 
 
 # Q3
@@ -407,12 +414,29 @@ class CsvManager:
             "p_value": round(p_value, 4),
         }
 
-    def plot_data(self, y: str, x: str | None = None, plot_type: str = "line"):
+    def _save_figure(self, stem: str) -> str:
+        """Save the current figure into outputs/ and close it. Returns the path."""
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        path = OUTPUT_DIR / f"{stem}.png"
+        plt.savefig(path, dpi=100, bbox_inches="tight")
+        plt.close()
+        return str(path)
+
+    def plot_data(self, y: str, x: str | None = None, plot_type: str = "line",
+                  color: str | None = None):
         """
         Plot from the active CSV.
 
         - If x is None: plot y vs row index.
         - If x is provided: plot y vs x.
+        - color optionally sets the line/marker color, e.g. "green".
+
+        Q8 asks whether each agent actually produced *green* dots. Originally
+        this tool had no color parameter at all, so neither agent could have
+        satisfied that request no matter how well it reasoned -- the honest
+        comparison the question asks for wasn't even possible. Adding `color`
+        here makes it possible, and saving the figure (instead of just calling
+        plt.show()) makes the result checkable after the fact.
         """
         error = self._ensure_loaded()
         if error:
@@ -431,21 +455,25 @@ class CsvManager:
             return "Error: scatter plots need both x and y columns."
 
         title_csv = self.csv_name or "current CSV"
+        color_kwargs = {"color": color} if color else {}
+        color_note = color if color else "matplotlib default"
 
         if x is None:
-            ax = self.df[y].plot(kind="line")
+            ax = self.df[y].plot(kind="line", **color_kwargs)
             ax.set_title(f"{title_csv} | Line plot: {y} vs row index")
-            plt.show()
-            return f"Plotted {y} vs row index as a line plot."
+            saved = self._save_figure(f"line_{y}_vs_index")
+            return (f"Plotted {y} vs row index as a line plot "
+                    f"(color: {color_note}). Saved to {saved}.")
 
         if x not in self.df.columns:
             return f"Error: column '{x}' is not in {self.df.columns.tolist()}"
 
-        ax = self.df.plot(x=x, y=y, kind=plot_type)
+        ax = self.df.plot(x=x, y=y, kind=plot_type, **color_kwargs)
         ax.set_title(f"{title_csv} | {plot_type.title()} plot: {y} vs {x}")
-        plt.show()
+        saved = self._save_figure(f"{plot_type}_{y}_vs_{x}")
 
-        return f"Plotted {y} vs {x} as a {plot_type}."
+        return (f"Plotted {y} vs {x} as a {plot_type} "
+                f"(color: {color_note}). Saved to {saved}.")
 
 
 print("Class defined")
@@ -560,13 +588,16 @@ tools_schema = [
                         "enum": ["scatter", "line"],
                         "description": "Type of plot to create.",
                     },
+                    "color": {
+                        "type": "string",
+                        "description": "Optional color for the line or dots, e.g. 'green'.",
+                    },
                 },
                 "required": ["y"],
             },
         },
     },
 ]
-
 
 # Q5
 # (run_agent_cycle was previously defined twice — once here and again identically
@@ -666,25 +697,43 @@ for listing, loading, and analyzing CSV files. Use the tools whenever you need t
 inspect or compute something about the data."""
 
 
+# This is the same scenario from the lesson that used to stall on the tool-round
+# limit because there was no correlation tool. Once compute_correlation exists,
+# the same request finishes normally.
+print("\n" + "=" * 70)
+print("Q5: correlation scenario that previously hit the tool-round limit")
+print("=" * 70)
+
 messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-result = run_agent_cycle(messages, "Load bike_commute.csv and compute the correlation between avg_traffic_density and avg_speed_kmh.")
-print(result)
-
+result = run_agent_cycle(
+    messages,
+    "Load bike_commute.csv and compute the correlation between avg_traffic_density and avg_speed_kmh.",
+)
+print("\nQ5 final answer:", result)
 
 
 # Q6
 
+# This is the actual ReAct loop, recorded in order:
+#
+#   "system"                — the instruction prompt
+#   "user"                  — the goal from the user
+#   "assistant" (tool_call) — the model decides it needs load_csv
+#   "tool"                  — the result from loading the CSV, fed back in
+#   "assistant" (tool_call) — now it asks for compute_correlation
+#   "tool"                  — the correlation result, fed back in
+#   "assistant" (final)     — the final answer in plain English
+#
+# The important point is that the model never computed the correlation itself;
+# it only asked for tools and used the returned values.
 
-# "system" — the instructions
-# "user" — the original request
-# "assistant" (tool_call) — requesting load_csv
-# "tool" — the result of loading the CSV
-# "assistant" (tool_call) — requesting compute_correlation
-# "tool" — the correlation result
-# "assistant" (final) — the real answer, no more tool_calls
-
+print("\n" + "=" * 70)
+print("Q6: full message history after Q5 (the complete ReAct loop)")
+print("=" * 70)
 print(json.dumps(messages, indent=2, default=str))
+print(f"\n(total messages: {len(messages)}; "
+      f"roles in order: {[m['role'] for m in messages]})")
 
 
 # --- Lesson 04: smolagents ---
@@ -708,23 +757,18 @@ def compute_correlation(col1: str, col2: str) -> dict:
 
 print(compute_correlation.description)
 
-# Comparison: smolagents automatically generates the tool's schema (name, description,
-# and parameter types) by reading the function's type hints and its Google-style
-# docstring. In Q4, I had to hard-code every part of that schema myself — the "name",
-# "description", the "parameters" object with "type": "object", each property's
-# "type" and "description", and the "required" content as a raw JSON-like dict.
+# smolagents generates the tool schema for me from the function signature and
+# docstring. In Q4, I had to write that schema by hand: the name, description,
+# parameters object, each argument type, and the required fields.
 #
-# With smolagents, I only need to supply:
-#   1. Type hints on each parameter (col1: str, col2: str) — this becomes each
-#      parameter's JSON schema "type".
-#   2. A docstring with an "Args:" section describing each parameter in plain
-#      English — this becomes each parameter's "description".
-#   3. A top-level docstring summary — this becomes the tool's overall "description".
+# With smolagents, I only need:
+#   1. Type hints on each parameter (`col1: str`, `col2: str`) — these become the
+#      JSON schema types.
+#   2. A docstring with an "Args:" section — that becomes the argument descriptions.
+#   3. A top-level docstring summary — that becomes the tool description.
 #
-# So smolagents still needs the same information a manual schema needs (name,
-# description, parameter types, parameter descriptions) — it just extracts it from
-# idiomatic Python (type hints + docstring) instead of making me duplicate that
-# information in a separate JSON dict by hand.
+# So the information is still the same, but smolagents pulls it out of Python
+# code instead of making me duplicate it in a separate JSON dict.
 
 # Q8
 
@@ -784,18 +828,22 @@ def describe_column(column: str) -> dict:
     return csv_manager.describe_column(column)
 
 @tool
-def plot_data(y: str, x: str | None = None, plot_type: str = "line") -> str | dict:
-    """Plot from the active CSV.
+def plot_data(y: str, x: str | None = None, plot_type: str = "line",
+              color: str | None = None) -> str | dict:
+    """Plot from the active CSV and save the figure to outputs/.
 
     Args:
         y: Column name to plot on the y-axis.
         x: Column name to plot on the x-axis. If None, use row index.
         plot_type: "line" or "scatter". Scatter requires x and y.
+        color: Optional color for the line or dots, e.g. "green". If omitted,
+            matplotlib's default color is used.
 
     Returns:
-        A short success message string, or an error dict/string.
+        A short success message string naming the color used and the saved
+        file path, or an error dict/string.
     """
-    return csv_manager.plot_data(y=y, x=x, plot_type=plot_type)
+    return csv_manager.plot_data(y=y, x=x, plot_type=plot_type, color=color)
 
 
 
@@ -818,7 +866,20 @@ model = OpenAIServerModel(
 SYSTEM_PROMPT = (
     "You are a small data assistant to help analyze files stored in resources/. "
     "Use the available tools to do any work requested (do not guess). "
+    "Report only what the tools actually did -- if you could not satisfy part of "
+    "the request, say so plainly instead of claiming success. "
     "Keep answers short and student-friendly."
+)
+
+# The CodeAgent gets one extra sentence the ToolCallingAgent cannot act on:
+# permission to write its own matplotlib when the tools fall short. Without this
+# the CodeAgent just calls plot_data like the tool agent does, and the two
+# agents look identical -- which hides the very difference Q8 is asking about.
+CODE_AGENT_PROMPT = SYSTEM_PROMPT + (
+    " You can also write your own Python. If a request asks for styling or "
+    "analysis the tools do not expose, write matplotlib/pandas code yourself "
+    "using the real CSV in resources/ rather than forcing the request into a "
+    "tool that cannot do it. Save any figure you create into outputs/."
 )
 
 tool_agent = ToolCallingAgent(
@@ -830,48 +891,91 @@ tool_agent = ToolCallingAgent(
 code_agent = CodeAgent(
     tools=TOOLS,
     model=model,
-    instructions=SYSTEM_PROMPT,
+    instructions=CODE_AGENT_PROMPT,
     additional_authorized_imports=["pandas", "matplotlib.pyplot", "scipy.stats"],
     max_steps=8,
 )
 
 prompt = "Load bike_commute.csv. Plot avg_heart_rate vs duration_min as a scatter plot with green dots."
 
+print("\n" + "=" * 70)
+print("Q8: same prompt, two agent types")
+print("=" * 70)
+
+print("\n--- ToolCallingAgent ---")
 response_tool = tool_agent.run(prompt)
+
+print("\n--- CodeAgent ---")
 response_code = code_agent.run(prompt, additional_args={"csv_manager": csv_manager})
 
-print("Tool agent response:", response_tool)
+print("\nTool agent response:", response_tool)
 print("Code agent response:", response_code)
 
 
-# results:
-# - ToolCallingAgent: called load_csv, then plot_data(y="avg_heart_rate",
-#   x="duration_min", plot_type="scatter") — but plot_data has no color parameter,
-#   so the dots were plotted in matplotlib's default color, not green. Despite this,
-#   the agent's final answer claimed "Successfully plotted ... with green dots" —
-#   a hallucination, since the tool it called never touched color at all.
-
-# - CodeAgent: also just called plot_data() directly instead of writing custom
-#   matplotlib code, so it also failed to make the dots green. However, its final
-#   answer was more honest: it only claimed the plot was "plotted successfully"
-#   without falsely stating the dots were green.
-
-# This reveals that giving a CodeAgent the ability to write custom code doesn't
-# mean it always will — without a system prompt that explicitly instructs it to
-# write matplotlib code when styling requests exceed the tools' capabilities, it
-# may default to the existing tool just like a ToolCallingAgent does. The real
-# difference observed here was in honesty of reporting: the ToolCallingAgent
-# hallucinated success, while the CodeAgent's final answer stayed accurate.
+# --- Q8 results (observed, not predicted) ---
+#
+# I kept both runs because the first one was the real lesson.
+#
+# FIRST RUN: before plot_data had a `color` parameter:
+#   Neither agent could actually do "green dots," because no tool exposed color.
+#   The difference was in how they handled that mismatch:
+#     - ToolCallingAgent called plot_data(y=..., x=..., plot_type="scatter") and
+#       then claimed it had made green dots. That was a hallucination.
+#     - CodeAgent made the same call but did not claim the color.
+#   The failure mode here was that a missing capability got described as success.
+#
+# SECOND RUN — after adding `color` to plot_data and its schema:
+#   1. What each agent actually produced:
+#      - ToolCallingAgent: three distinct tool calls, one per step —
+#          load_csv("bike_commute.csv"), plot_data(..., color="green"), and final_answer(...)
+#      - CodeAgent: a single Python step that included a few intermediate calls,
+#        then a plot call with color="green".
+#      - The dots were indeed green. I checked the saved PNG instead of trusting
+#        the agent output.
+#      - Both agents write to the same filename, so the second run overwrites the
+#        first one. The saved file on disk is the later run.
+#
+#   2. What this tells us:
+#      Once the tool can express the request, the two agents start to converge.
+#      The CodeAgent still has more room to compose steps, but the ToolCallingAgent
+#      stays more predictable and easier to audit because each action is a named,
+#      schema-checked call.
 
 
 # Q9
 
-# A ToolCallingAgent would be more useful than a CodeAgent when you want to simply build
-# an order ETA calculator. This would allow the agent to call a tool that calls the order
-# status and ETA. This task isn't vague and undefined at any point. This is simple, and
-# it only takes one tool to achieve.
-
-# One meaningful risk of using a code agent is that it will make it's own code, and hallucinations
-# are very likely. If the CodeBasedAgent misunderstands instructions, it may even do more than the
-# developer intended to ask it to do, generating more code. These generations are not tested or reviewed
-# either. Depending on the model, this could add to API costs as well.
+# 1. A task better suited to a ToolCallingAgent: a customer-facing order status
+#    and ETA lookup ("where is order #48213, and when does it arrive?").
+#
+#    The property that makes it a good fit is that the action space is CLOSED
+#    and ENUMERABLE. There is exactly one legal operation — look up one order id
+#    against the orders API — and every valid request is that same call with a
+#    different parameter. Nothing about the task benefits from composing steps or
+#    computing something new.
+#
+#    When the action space is closed, the JSON schema becomes a real constraint
+#    rather than a suggestion: the model can only emit a well-formed call with an
+#    order id, so it cannot invent a query, join against a table it shouldn't
+#    touch, or read a different customer's record. Every action is logged as a
+#    named call with typed arguments, which is exactly what you need when the
+#    output is shown to a customer and may have to be audited later. A CodeAgent
+#    would buy flexibility the task never uses, and pay for it in reviewability.
+#
+# 2. A meaningful risk unique to a CodeAgent: ARBITRARY CODE EXECUTION.
+#
+#    A ToolCallingAgent can only ask for functions I wrote and registered; the
+#    worst it can do is call one of my functions with bad arguments. A CodeAgent
+#    generates Python that is then actually executed in my process, with whatever
+#    filesystem, network, and library reach that process has — code that was
+#    never written by a developer, never reviewed, and never tested. The failure
+#    isn't just a wrong answer; it's a wrong *action* (an overwritten file, an
+#    unintended request) taken before anyone can inspect it.
+#
+#    I hit a concrete version of this in the project half of this assignment. The
+#    tools returned {"error": "column not found"} because the tool names and the
+#    dataset's column names disagreed. Instead of surfacing that failure, the
+#    agent wrote code that fabricated the data with random.uniform(), plotted the
+#    fake numbers, labeled the chart "Simulated Happiness Score," and reported
+#    success. A ToolCallingAgent literally cannot do that — it has no tool named
+#    "make up plausible data," so it would have had to return the error. The code
+#    path let a data-quality failure turn silently into a confident wrong answer.

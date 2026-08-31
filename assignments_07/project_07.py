@@ -16,6 +16,28 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = PROJECT_ROOT / "assignments_01" / "outputs" / "merged_happiness.csv"
 FALLBACK_DIR = PROJECT_ROOT / "assignments" / "resources" / "happiness_project"
 
+OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"
+CLEAN_PATH = OUTPUT_DIR / "happiness_clean.csv"
+
+# The two data sources disagree on column naming, and neither matches the names
+# the assignment's queries use ("happiness_score", "gdp_per_capita", "region").
+# The Week 1 merged file uses "Happiness score" / "Regional indicator"; the raw
+# 2024 file uses "Ladder score". Both are normalized to one snake_case schema so
+# every tool -- and every snippet the agent writes itself -- sees the same names.
+COLUMN_RENAMES = {
+    "regional indicator": "region",
+    "ladder score": "happiness_score",
+}
+
+
+def _normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy of frame with the project-wide snake_case column schema."""
+    renamed = {}
+    for col in frame.columns:
+        key = col.strip().lower()
+        renamed[col] = COLUMN_RENAMES.get(key, key.replace(" ", "_"))
+    return frame.rename(columns=renamed)
+
 
 #Task 1
 
@@ -26,23 +48,35 @@ def load_happiness_data() -> dict:
 
     Loads the merged CSV from assignments_01/outputs/merged_happiness.csv if
     it exists. Otherwise, falls back to loading and merging all yearly CSV
-    files found in assignments/resources/happiness_project/. If you need
-    row-level data beyond what this tool's summary provides (for example, to
-    build a custom plot), you can load the same file directly yourself with
-    pandas: pd.read_csv("assignments_01/outputs/merged_happiness.csv").
+    files found in assignments/resources/happiness_project/ (those raw files
+    are semicolon-separated, use commas as decimal marks, and carry the year
+    only in the filename). Either way the columns are normalized to snake_case,
+    so the dataset always exposes "country", "region", "year",
+    "happiness_score", "gdp_per_capita", "social_support", and so on.
+
+    The normalized table is also written to outputs/happiness_clean.csv, and
+    the returned "path" points at it. If you need row-level data that these
+    tools do not expose (for example, to build a custom plot or a groupby),
+    read that exact file with pandas: pd.read_csv(<the "path" value>).
+    Never invent or simulate rows.
 
     Returns:
-        A dict (not a DataFrame) with "shape" (tuple of rows, columns) and
-        "columns" (list of column names).
+        A dict (not a DataFrame) with "shape" (tuple of rows, columns),
+        "columns" (list of column names), and "path" (the normalized CSV on
+        disk that your own code can read).
     """
     global df
 
     if DATA_PATH.exists():
-        df = pd.read_csv(DATA_PATH)
+        df = _normalize_columns(pd.read_csv(DATA_PATH))
     elif FALLBACK_DIR.exists():
         yearly_dfs = []
-        for csv_file in sorted(FALLBACK_DIR.glob("*.csv")):
-            yearly_dfs.append(pd.read_csv(csv_file))
+        for csv_file in sorted(FALLBACK_DIR.glob("world_happiness_*.csv")):
+            yearly = pd.read_csv(csv_file, sep=";", decimal=",")
+            yearly = _normalize_columns(yearly)
+            # The year is only in the filename, not inside the raw yearly files.
+            yearly["year"] = int(csv_file.stem.split("_")[-1])
+            yearly_dfs.append(yearly)
         if yearly_dfs:
             df = pd.concat(yearly_dfs, ignore_index=True)
         else:
@@ -52,9 +86,13 @@ def load_happiness_data() -> dict:
             f"Data file not found at {DATA_PATH} and fallback directory not found at {FALLBACK_DIR}."
         )
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    df.to_csv(CLEAN_PATH, index=False)
+
     return {
         "shape": df.shape,
         "columns": df.columns.tolist(),
+        "path": str(CLEAN_PATH),
     }
 
 
@@ -66,8 +104,8 @@ def summarize_column(column: str) -> dict:
     Computes count, mean, standard deviation, min, max, and quartiles
     (25%, 50%, 75%) for the specified column, using pandas' built-in
     describe() method. Use this tool when the user wants a quick
-    statistical overview of one column (e.g. "what's the average GDP?"
-    or "summarize the population column").
+    statistical overview of one column (e.g. "summarize the
+    happiness_score column" or "what's the average gdp_per_capita?").
 
     Args:
         column: The name of the column to summarize. Must be a numeric
@@ -93,8 +131,8 @@ def compute_correlation(col1: str, col2: str) -> dict:
     """Compute the Pearson correlation coefficient and p-value between two numeric columns.
 
     Use this tool when the user asks whether two variables are related
-    or move together (e.g. "is there a correlation between GDP and
-    life expectancy?"). The Pearson r measures the strength and
+    or move together (e.g. "is there a correlation between
+    gdp_per_capita and happiness_score?"). The Pearson r measures the strength and
     direction of a linear relationship, ranging from -1 (perfect
     negative) to 1 (perfect positive), and the p-value indicates
     whether that correlation is statistically significant.
@@ -145,7 +183,7 @@ def get_top_n_countries(column: str, year: int, n: int = 5) -> dict:
         n: The number of top countries to return. Defaults to 5.
 
     Returns:
-        A list of dictionaries, each containing "Country" and the
+        A list of dictionaries, each containing "country" and the
         requested column's value, sorted in descending order by that
         column, limited to the top n entries. If no dataset is loaded,
         the column or year is invalid, or no data exists for that year,
@@ -156,17 +194,17 @@ def get_top_n_countries(column: str, year: int, n: int = 5) -> dict:
         return {"error": "No data loaded. Call load_happiness_data first."}
     if column not in df.columns:
         return {"error": f"Column '{column}' not found in dataset."}
-    if "Year" not in df.columns:
-        return {"error": "Dataset has no 'Year' column."}
-    if "Country" not in df.columns:
-        return {"error": "Dataset has no 'Country' column."}
+    if "year" not in df.columns:
+        return {"error": "Dataset has no 'year' column."}
+    if "country" not in df.columns:
+        return {"error": "Dataset has no 'country' column."}
 
-    subset = df[df["Year"] == year]
+    subset = df[df["year"] == year]
     if subset.empty:
         return {"error": f"No data found for year {year}."}
 
     top = subset.sort_values(by=column, ascending=False).head(n)
-    return top[["Country", column]].to_dict(orient="records")
+    return top[["country", column]].to_dict(orient="records")
 
 
 # Task 2: initiate agent
@@ -210,18 +248,20 @@ if __name__ == "__main__":
     response_1 = agent.run(my_query_1, reset=False)
     print(f"\n--- Query: {my_query_1} ---")
     print(response_1)
-    # Comment: Triggered a tool call (compute_correlation) — no code writing
-    # needed. Social support correlation (r=0.7439) came back stronger than
-    # the earlier GDP correlation (r=0.6313).
+    # Comment: TOOL USE (wrapped in one line of code). The agent called
+    # compute_correlation("social_support", "happiness_score") and compared the
+    # result to the GDP number it still had in context from Query 3.
+    # r = 0.7439 for social support vs r = 0.6313 for GDP, so social support is
+    # the stronger correlate. reset=False is what made that comparison possible.
 
     my_query_2 = "Which region had the biggest increase in average happiness score between 2015 and 2024?"
     response_2 = agent.run(my_query_2, reset=False)
     print(f"\n--- Query: {my_query_2} ---")
     print(response_2)
-    # Comment: No tool computes a year-over-year regional comparison, so this
-    # should force the agent to write its own pandas code, loading the CSV
-    # itself via pd.read_csv() (per the system prompt) rather than relying on
-    # any smuggled-in variable.
+    # Comment: CODE GENERATION. No tool computes a year-over-year regional
+    # comparison, so the agent wrote its own pandas (read the clean CSV, filter
+    # to 2015 and 2024, groupby region, mean, diff, take the max). Answer:
+    # Central and Eastern Europe, +0.6627.
 
 
 # --- Reflection ---
@@ -229,32 +269,67 @@ if __name__ == "__main__":
 # 1. In Query 3, how did the agent communicate whether the correlation was statistically
 #    significant? Did it use the p-value correctly? What threshold did it apply?
 #
-#    The agent's own generated code explicitly compared the p-value against 0.05:
-#    "significant": correlation_result['p_value'] < 0.05
-#    Since compute_correlation returned p_value = 0.0 for the GDP/happiness_score
-#    correlation, this evaluated to True, and the agent reported the relationship
-#    as statistically significant in its final answer. This is the standard alpha =
-#    0.05 threshold, applied correctly given the near-zero p-value.
+#    It called compute_correlation("gdp_per_capita", "happiness_score"), got back
+#    {'pearson_r': 0.6313, 'p_value': 0.0}, and then returned:
+#        {"pearson_r": 0.6313, "p_value": 0.0, "statistically_significant": True}
+#
+#    So the conclusion is correct, but note HOW it got there: it never wrote the
+#    threshold down. There was no `p_value < 0.05` anywhere in its generated code
+#    -- it hardcoded the boolean True after reading p = 0.0. The alpha = 0.05
+#    convention was applied silently, in the model's head, not in the code.
+#
+#    With p = 0.0 that shortcut happens to be right. But it means the agent's
+#    "significant" flag is an assertion, not a computation: if the p-value had
+#    been 0.06, nothing in the code would have forced it to say False. On an
+#    earlier run it DID write the comparison out explicitly, so the behavior is
+#    not even stable between runs. The lesson is that the threshold belongs in
+#    the tool, where it is always applied the same way, rather than being left to
+#    the model to remember.
 #
 # 2. Did any of the agent's responses surprise you — either by being more capable than
 #    you expected, or less? Describe one specific example.
 #
-#    Less capable, in an interesting way: on an early attempt at the plotting query,
-#    the agent tried to build a DataFrame directly from load_happiness_data's return
-#    value (a summary dict with only "shape" and "columns" keys), which failed. Rather
-#    than recognizing that no tool exposed row-level data, it fabricated random values
-#    with `random.uniform(...)` and plotted that fake data as if it were real, labeling
-#    the chart "Simulated Happiness Score." It reported success without flagging that
-#    the underlying data was invented. That was surprising -- I expected a tool-based
-#    agent to fail loudly rather than quietly substitute fake data for real data.
+#    Less capable, and it took me a while to see why. On my first attempts at the
+#    plotting query the agent tried to build a DataFrame out of
+#    load_happiness_data's return value (a summary dict with only "shape" and
+#    "columns"), which failed. Instead of reporting that no tool exposed
+#    row-level data, it fabricated the numbers with `random.uniform(...)`,
+#    plotted them, labeled the chart "Simulated Happiness Score," and reported
+#    success. I expected an agent to fail loudly rather than quietly swap fake
+#    data in for real data.
+#
+#    The root cause turned out to be my code, not the model. The dataset's real
+#    columns are "Happiness score" / "GDP per capita" / "Regional indicator",
+#    but every query in this assignment asks for happiness_score, gdp_per_capita
+#    and region. So the tools were returning {"error": "column not found"} and
+#    the agent had no working path to the data at all. Fixing that -- normalizing
+#    every column to one snake_case schema in _normalize_columns(), and writing
+#    the clean table to outputs/happiness_clean.csv so the agent has a real file
+#    to read -- made the fabrication stop completely. On the final run it loaded
+#    that CSV, did groupby(['year','region'])['happiness_score'].mean().unstack()
+#    and produced a genuine 10-region chart.
+#
+#    The surprising part is the failure mode, not the failure: a broken tool
+#    didn't produce an error, it produced a confident wrong answer. An agent
+#    that can write code can always route around a broken tool, and routing
+#    around it looks exactly like success from the outside.
 #
 # 3. What one additional tool would make this agent meaningfully more useful?
 #    Describe what it would do and what kind of question it would help the agent answer.
 #    (You do not need to implement it.)
 #
-#    A tool like get_grouped_average(group_by: str, value_column: str, filter_year:
-#    int | None = None) that returns a dict of group -> mean value (e.g. average
-#    happiness_score per Regional indicator, optionally filtered to a year) would
-#    directly solve the gap above. It would let the agent answer questions like "which
-#    region improved the most?" or "how does average GDP per capita differ by region?"
-#    using a real tool instead of writing ad hoc pandas code (or, worse, guessing).
+#    get_grouped_average(group_by: str, value_column: str, year: int | None = None)
+#    returning a dict of group -> mean value: average happiness_score per region,
+#    optionally filtered to one year.
+#
+#    Every question in this assignment that forced the agent to write its own
+#    pandas was this same shape -- Query 5's chart (mean happiness_score by region
+#    and year) and my second custom query (which region gained the most between
+#    2015 and 2024) both reduce to a grouped average. That is the one gap the four
+#    existing tools leave, and it is the exact gap the agent filled with fake data
+#    when it couldn't reach the real rows.
+#
+#    It would also move the aggregation into reviewed code. Right now the agent
+#    re-derives the groupby from scratch on every run, so the numbers depend on
+#    whatever it wrote that time; behind a tool the calculation would be the same
+#    every time and I could unit-test it.
