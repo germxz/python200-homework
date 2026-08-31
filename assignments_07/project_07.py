@@ -29,7 +29,8 @@ def load_happiness_data() -> dict:
     resources folder.
 
     Returns:
-        A dict with "shape" (rows, columns) and "columns" (list of column names).
+        A dict (not a DataFrame) with "shape" (tuple of rows, columns) and
+        "columns" (list of column names).
     """
     global df
 
@@ -165,7 +166,7 @@ def get_top_n_countries(column: str, year: int, n: int = 5) -> dict:
     return top[["Country", column]].to_dict(orient="records")
 
 
-# Task 2 initiate agent
+# Task 2: initiate agent
 
 model = OpenAIServerModel(api_key=api_key, model_id="gpt-4o-mini")
 
@@ -186,8 +187,7 @@ agent = CodeAgent(
 )
 
 
-# Task 3 run guided queries
-
+# Task 3: guided query sequence
 queries = [
     "Load the happiness data and tell me its shape and column names.",
     "Summarize the happiness_score column.",
@@ -196,38 +196,47 @@ queries = [
     "Plot happiness_score over the years as a line chart, with one line per region. Save the plot to outputs/happiness_by_region.png.",
 ]
 
-for query in queries:
-    print(f"\n--- Query: {query} ---")
-    if "Plot" in query:
-        # The plotting task needs row-level data (year x region), which none
-        # of the four tools expose. Passing the real dataframe into the
-        # sandbox lets the agent write correct plotting code against real
-        # data instead of fabricating values.
-        response = agent.run(query, reset=False, additional_args={"df": df})
-    else:
-        response = agent.run(query, reset=False)
-    print(response)
-
-
-# Task 4: Your own questions
-
-# My query 1
+# Task 4: additional queries
 my_query_1 = "What is the correlation between social support and happiness score, and is it stronger or weaker than the GDP correlation?"
-response_1 = agent.run(my_query_1, reset=False)
-print(f"\n--- Query: {my_query_1} ---")
-print(response_1)
-# Comment: This should trigger a tool call (compute_correlation). Since
-# reset=False keeps prior conversation context, the agent may reuse the
-# earlier GDP/happiness_score correlation result instead of recomputing it.
-
-# My query 2
 my_query_2 = "Which region had the biggest increase in average happiness score between 2015 and 2024?"
-print(f"\n--- Query: {my_query_2} ---")
-response_2 = agent.run(my_query_2, reset=False, additional_args={"df": df})
-print(response_2)
 
-# No tool computes a groupby + year-over-year comparison across
-# regions, so this should force the agent to write its own pandas code
-# (groupby on Region/Year, filter to 2015 and 2024, compute the difference)
-# rather than call one of the four tools. The real dataframe is passed in
-# via additional_args for the same reason it was needed for the plot query.
+
+def run_guided_queries():
+    """Run the Task 3 guided query sequence and print each response."""
+    for query in queries:
+        print(f"\n--- Query: {query} ---")
+        if "Plot" in query:
+            # The plotting task needs row-level data (year x region), which none
+            # of the four tools expose. Passing the real dataframe into the
+            # sandbox lets the agent write correct plotting code against real
+            # data instead of fabricating values.
+            response = agent.run(query, reset=False, additional_args={"df": df})
+        else:
+            response = agent.run(query, reset=False)
+        print(response)
+
+
+def run_my_queries():
+    """Run the Task 4 custom queries and print each response."""
+    print(f"\n--- Query: {my_query_1} ---")
+    response_1 = agent.run(my_query_1, reset=False)
+    print(response_1)
+    # Comment: Triggered a tool call (compute_correlation) — no code writing
+    # needed. Social support correlation (r=0.7439) came back stronger than
+    # the earlier GDP correlation (r=0.6313).
+
+    print(f"\n--- Query: {my_query_2} ---")
+    response_2 = agent.run(my_query_2, reset=False, additional_args={"df": df})
+    print(response_2)
+    # Comment: Forced the agent to write its own pandas code (groupby + diff
+    # + idxmax), since no tool computes year-over-year regional comparisons.
+    # Result: Central and Eastern Europe had the largest increase (+0.66).
+
+
+def main():
+    run_guided_queries()
+    run_my_queries()
+
+
+if __name__ == "__main__":
+    main()

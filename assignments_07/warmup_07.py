@@ -32,21 +32,20 @@ def celsius_to_fahrenheit(celsius: float) -> str:
     return f"{celsius}°C is {fahrenheit}°F"
 
 
+# Flat schema shape, matching the get_current_time schema style from the lesson
+# (no outer 'type': 'function' / 'function': {...} wrapper here).
 celsius_to_fahrenheit_schema = {
-    'type': 'function',
-    'function': {
-        'name': 'celsius_to_fahrenheit',
-        'description': 'Convert a Celsius temperature to Fahrenheit and return it as a formatted string.',
-        'parameters': {
-            'type': 'object',
-            'properties': {
-                'celsius': {
-                    'type': 'number',
-                    'description': 'The temperature in Celsius to convert.',
-                },
+    'name': 'celsius_to_fahrenheit',
+    'description': 'Convert a Celsius temperature to Fahrenheit and return it as a formatted string.',
+    'parameters': {
+        'type': 'object',
+        'properties': {
+            'celsius': {
+                'type': 'number',
+                'description': 'The temperature in Celsius to convert.',
             },
-            'required': ['celsius'],
         },
+        'required': ['celsius'],
     },
 }
 
@@ -68,20 +67,22 @@ def get_current_time() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
+# Flat schema shape (matches the lesson's get_current_time schema exactly).
 get_current_time_schema = {
-    'type': 'function',
-    'function': {
-        'name': 'get_current_time',
-        'description': 'Returns the current local time as a string.',
-        'parameters': {
-            'type': 'object',
-            'properties': {},
-            'required': [],
-        },
+    'name': 'get_current_time',
+    'description': 'Returns the current local time as a string.',
+    'parameters': {
+        'type': 'object',
+        'properties': {},
+        'required': [],
     },
 }
 
-tools = [get_current_time_schema]
+# The OpenAI Chat Completions API requires each tool wrapped as
+# {'type': 'function', 'function': {...}}, so we wrap the flat schemas here,
+# right before they're used in the API call. The schemas themselves stay flat,
+# matching the lesson's shape.
+tools = [{'type': 'function', 'function': get_current_time_schema}]
 
 def run_agent(user_prompt: str) -> str:
     '''Run a minimal ReAct-style agent for a single user prompt.'''
@@ -159,7 +160,11 @@ print(ans)
 
 # Q3
 
-tools = [get_current_time_schema, celsius_to_fahrenheit_schema]
+# Wrap both flat schemas for the API call, same pattern as above.
+tools = [
+    {'type': 'function', 'function': get_current_time_schema},
+    {'type': 'function', 'function': celsius_to_fahrenheit_schema},
+]
 
 
 def run_agent(user_prompt: str) -> str:
@@ -383,10 +388,12 @@ class CsvManager:
         """
         Compute the Pearson correlation between two columns in the loaded DataFrame.
         Returns the correlation coefficient and p-value.
+
+        Explicitly guards against the "no CSV loaded" case, as required, rather
+        than relying only on the shared _ensure_loaded() helper.
         """
-        error = self._ensure_loaded()
-        if error:
-            return error
+        if self.df is None:
+            return {"error": "No CSV loaded. Please load a CSV first."}
 
         if col1 not in self.df.columns or col2 not in self.df.columns:
             return {"error": f"One or both columns not found. Options: {self.df.columns.tolist()}"}
@@ -442,84 +449,6 @@ class CsvManager:
 
 
 print("Class defined")
-
-
-def run_agent_cycle(messages, user_text, max_tool_rounds=5):
-    """
-    Run through one react-agent loop using a simple tool-using agent.
-    `messages` parameter will usually just contain a system prompt,
-    and then user text will be appended.
-
-    The loop has three main steps:
-
-    REASON:
-      - Call the model with the conversation so far.
-      - The model either replies normally, or asks to call a tool from tool set.
-
-    ACT:
-      - If tools are requested, run the Python functions
-
-    OBSERVE:
-      - Append each requested tool result back into the LLMs conversation history.
-      - On the next iteration, the model reads those tool call results and determines
-        whether it has reached the goal.
-
-    Stop condition:
-      - If the model returns an assistant message with no tool calls, this is the
-        final answer for this react cycle, this implies that reasoning alone without
-        tool calls was enough.
-      - max_tool_rounds is a safety cap to prevent infinite loops.
-    """
-    messages.append({"role": "user", "content": user_text})
-
-    def observe_tool_result(tool_call_id, result):
-        """
-        Return a tool's return value as a message that can be appended to the
-        LLMs conversation history. The model will read this tool output on the next
-        REASON step.
-        """
-        content = json.dumps(result, default=str) if not isinstance(result, str) else result
-        tool_message = {"role": "tool",
-                        "tool_call_id": tool_call_id,
-                        "content": content,}
-        return tool_message
-
-    for loop_idx in range(max_tool_rounds):
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=messages,
-            tools=tools_schema,
-        )
-
-        msg = response.choices[0].message
-
-        assistant_entry = {"role": "assistant", "content": msg.content}
-        if msg.tool_calls:
-            assistant_entry["tool_calls"] = [tc.model_dump() for tc in msg.tool_calls]
-        messages.append(assistant_entry)
-
-        if not msg.tool_calls:
-            return msg.content
-
-        for tool_call in msg.tool_calls:
-            name = tool_call.function.name
-            tool_args = json.loads(tool_call.function.arguments or "{}")
-
-            print(f"ACT: {name}({tool_args})")
-
-            fn = node_tools.get(name)
-            if fn is None:
-                result = {"error": f"Tool '{name}' not found."}
-            else:
-                try:
-                    result = fn(**tool_args) if tool_args else fn()
-                except Exception as e:
-                    print(f"Tool error in {name}: {type(e).__name__}: {e}")
-                    result = {"error": f"Tool '{name}' failed: {type(e).__name__}: {e}"}
-
-            messages.append(observe_tool_result(tool_call.id, result))
-
-    return "I hit the tool-round limit. Try a simpler request."
 
 
 # --- csv_manager instance (must exist before node_tools references its methods) ---
@@ -640,14 +569,15 @@ tools_schema = [
 
 
 # Q5
-
-
+# (run_agent_cycle was previously defined twice — once here and again identically
+# further down. The duplicate has been removed; this is the single lesson-flow
+# version used for the rest of the warmup.)
 
 def run_agent_cycle(messages, user_text, max_tool_rounds=5):
     """
     Run through one react-agent loop using a simple tool-using agent.
-    `messages` parameter will usually just contain a system prompt, 
-    and then user text will be appended.  
+    `messages` parameter will usually just contain a system prompt,
+    and then user text will be appended.
 
     The loop has three main steps:
 
@@ -664,9 +594,9 @@ def run_agent_cycle(messages, user_text, max_tool_rounds=5):
         whether it has reached the goal.
 
     Stop condition:
-      - If the model returns an assistant message with no tool calls, this is the 
-        final answer for this react cycle, this implies that reasoning alone without 
-        tool calls was enough.  
+      - If the model returns an assistant message with no tool calls, this is the
+        final answer for this react cycle, this implies that reasoning alone without
+        tool calls was enough.
       - max_tool_rounds is a safety cap to prevent infinite loops.
     """
     messages.append({"role": "user", "content": user_text})
@@ -703,7 +633,7 @@ def run_agent_cycle(messages, user_text, max_tool_rounds=5):
 
         # No tool calls means the model is answering directly.
         if not msg.tool_calls:
-            return msg.content 
+            return msg.content
 
         # ACT + OBSERVE: run each tool call, then append its result.
         # Note there may be multiple tool calls
@@ -722,11 +652,11 @@ def run_agent_cycle(messages, user_text, max_tool_rounds=5):
                 except Exception as e:
                     print(f"Tool error in {name}: {type(e).__name__}: {e}")
                     result = {"error": f"Tool '{name}' failed: {type(e).__name__}: {e}"}
-                    
+
             # OBSERVE: append the tool result back into the conversation history.
             messages.append(observe_tool_result(tool_call.id, result))
-            
-            # After we appending information about all tool outputs, we loop back and REASON again.
+
+            # After appending information about all tool outputs, we loop back and REASON again.
 
     return "I hit the tool-round limit. Try a simpler request."
 
@@ -780,7 +710,7 @@ print(compute_correlation.description)
 
 # Comparison: smolagents automatically generates the tool's schema (name, description,
 # and parameter types) by reading the function's type hints and its Google-style
-# docstring. In Q4, I had to hand-write every part of that schema myself — the "name",
+# docstring. In Q4, I had to hard-code every part of that schema myself — the "name",
 # "description", the "parameters" object with "type": "object", each property's
 # "type" and "description", and the "required" content as a raw JSON-like dict.
 #
@@ -914,7 +844,7 @@ print("Tool agent response:", response_tool)
 print("Code agent response:", response_code)
 
 
-# Actual results:
+# results:
 # - ToolCallingAgent: called load_csv, then plot_data(y="avg_heart_rate",
 #   x="duration_min", plot_type="scatter") — but plot_data has no color parameter,
 #   so the dots were plotted in matplotlib's default color, not green. Despite this,
@@ -934,16 +864,14 @@ print("Code agent response:", response_code)
 # hallucinated success, while the CodeAgent's final answer stayed accurate.
 
 
-
-
 # Q9
 
 # A ToolCallingAgent would be more useful than a CodeAgent when you want to simply build
-# an order ETA calculator. This would allow the agent to call a tool that calls the order 
+# an order ETA calculator. This would allow the agent to call a tool that calls the order
 # status and ETA. This task isn't vague and undefined at any point. This is simple, and
-# it only takes one tool to achieve. 
+# it only takes one tool to achieve.
 
 # One meaningful risk of using a code agent is that it will make it's own code, and hallucinations
 # are very likely. If the CodeBasedAgent misunderstands instructions, it may even do more than the
 # developer intended to ask it to do, generating more code. These generations are not tested or reviewed
-# either. Depending on the model, this could add to API costs as well. 
+# either. Depending on the model, this could add to API costs as well.
