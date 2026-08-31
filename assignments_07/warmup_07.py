@@ -414,29 +414,16 @@ class CsvManager:
             "p_value": round(p_value, 4),
         }
 
-    def _save_figure(self, stem: str) -> str:
-        """Save the current figure into outputs/ and close it. Returns the path."""
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        path = OUTPUT_DIR / f"{stem}.png"
-        plt.savefig(path, dpi=100, bbox_inches="tight")
-        plt.close()
-        return str(path)
-
-    def plot_data(self, y: str, x: str | None = None, plot_type: str = "line",
-                  color: str | None = None):
+    def plot_data(self, y: str, x: str | None = None, plot_type: str = "line"):
         """
         Plot from the active CSV.
 
         - If x is None: plot y vs row index.
         - If x is provided: plot y vs x.
-        - color optionally sets the line/marker color, e.g. "green".
 
-        Q8 asks whether each agent actually produced *green* dots. Originally
-        this tool had no color parameter at all, so neither agent could have
-        satisfied that request no matter how well it reasoned -- the honest
-        comparison the question asks for wasn't even possible. Adding `color`
-        here makes it possible, and saving the figure (instead of just calling
-        plt.show()) makes the result checkable after the fact.
+        Note: this tool deliberately has NO color parameter, exactly as in the
+        lesson. That limitation is the whole point of Q8 -- it is what the
+        ToolCallingAgent cannot work around and the CodeAgent can.
         """
         error = self._ensure_loaded()
         if error:
@@ -455,25 +442,24 @@ class CsvManager:
             return "Error: scatter plots need both x and y columns."
 
         title_csv = self.csv_name or "current CSV"
-        color_kwargs = {"color": color} if color else {}
-        color_note = color if color else "matplotlib default"
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
         if x is None:
-            ax = self.df[y].plot(kind="line", **color_kwargs)
+            ax = self.df[y].plot(kind="line")
             ax.set_title(f"{title_csv} | Line plot: {y} vs row index")
-            saved = self._save_figure(f"line_{y}_vs_index")
-            return (f"Plotted {y} vs row index as a line plot "
-                    f"(color: {color_note}). Saved to {saved}.")
+            plt.savefig(OUTPUT_DIR / f"tool_agent_line_{y}.png")
+            plt.close()
+            return f"Plotted {y} vs row index as a line plot."
 
         if x not in self.df.columns:
             return f"Error: column '{x}' is not in {self.df.columns.tolist()}"
 
-        ax = self.df.plot(x=x, y=y, kind=plot_type, **color_kwargs)
+        ax = self.df.plot(x=x, y=y, kind=plot_type)
         ax.set_title(f"{title_csv} | {plot_type.title()} plot: {y} vs {x}")
-        saved = self._save_figure(f"{plot_type}_{y}_vs_{x}")
+        plt.savefig(OUTPUT_DIR / f"tool_agent_{plot_type}_{y}_vs_{x}.png")
+        plt.close()
 
-        return (f"Plotted {y} vs {x} as a {plot_type} "
-                f"(color: {color_note}). Saved to {saved}.")
+        return f"Plotted {y} vs {x} as a {plot_type}."
 
 
 print("Class defined")
@@ -587,10 +573,6 @@ tools_schema = [
                         "type": "string",
                         "enum": ["scatter", "line"],
                         "description": "Type of plot to create.",
-                    },
-                    "color": {
-                        "type": "string",
-                        "description": "Optional color for the line or dots, e.g. 'green'.",
                     },
                 },
                 "required": ["y"],
@@ -828,22 +810,18 @@ def describe_column(column: str) -> dict:
     return csv_manager.describe_column(column)
 
 @tool
-def plot_data(y: str, x: str | None = None, plot_type: str = "line",
-              color: str | None = None) -> str | dict:
-    """Plot from the active CSV and save the figure to outputs/.
+def plot_data(y: str, x: str | None = None, plot_type: str = "line") -> str | dict:
+    """Plot from the active CSV.
 
     Args:
         y: Column name to plot on the y-axis.
         x: Column name to plot on the x-axis. If None, use row index.
         plot_type: "line" or "scatter". Scatter requires x and y.
-        color: Optional color for the line or dots, e.g. "green". If omitted,
-            matplotlib's default color is used.
 
     Returns:
-        A short success message string naming the color used and the saved
-        file path, or an error dict/string.
+        A short success message string, or an error dict/string.
     """
-    return csv_manager.plot_data(y=y, x=x, plot_type=plot_type, color=color)
+    return csv_manager.plot_data(y=y, x=x, plot_type=plot_type)
 
 
 
@@ -866,22 +844,11 @@ model = OpenAIServerModel(
 SYSTEM_PROMPT = (
     "You are a small data assistant to help analyze files stored in resources/. "
     "Use the available tools to do any work requested (do not guess). "
-    "Report only what the tools actually did -- if you could not satisfy part of "
-    "the request, say so plainly instead of claiming success. "
     "Keep answers short and student-friendly."
 )
 
-# The CodeAgent gets one extra sentence the ToolCallingAgent cannot act on:
-# permission to write its own matplotlib when the tools fall short. Without this
-# the CodeAgent just calls plot_data like the tool agent does, and the two
-# agents look identical -- which hides the very difference Q8 is asking about.
-CODE_AGENT_PROMPT = SYSTEM_PROMPT + (
-    " You can also write your own Python. If a request asks for styling or "
-    "analysis the tools do not expose, write matplotlib/pandas code yourself "
-    "using the real CSV in resources/ rather than forcing the request into a "
-    "tool that cannot do it. Save any figure you create into outputs/."
-)
-
+# Both agents get the SAME tools, the SAME model, and the SAME instructions, so
+# any difference in the result comes from the agent type itself and nothing else.
 tool_agent = ToolCallingAgent(
     tools=TOOLS,
     model=model,
@@ -891,7 +858,7 @@ tool_agent = ToolCallingAgent(
 code_agent = CodeAgent(
     tools=TOOLS,
     model=model,
-    instructions=CODE_AGENT_PROMPT,
+    instructions=SYSTEM_PROMPT,
     additional_authorized_imports=["pandas", "matplotlib.pyplot", "scipy.stats"],
     max_steps=8,
 )
@@ -912,34 +879,50 @@ print("\nTool agent response:", response_tool)
 print("Code agent response:", response_code)
 
 
-# --- Q8 results (observed, not predicted) ---
+# --- Q8 results ---
+# (Filled in from the actual printed output of the run above. The key fact is
+#  that plot_data has no color parameter, so "green dots" is a request the tool
+#  set simply cannot express.)
 #
-# I kept both runs because the first one was the real lesson.
+# 1. What did each agent actually produce?
 #
-# FIRST RUN: before plot_data had a `color` parameter:
-#   Neither agent could actually do "green dots," because no tool exposed color.
-#   The difference was in how they handled that mismatch:
-#     - ToolCallingAgent called plot_data(y=..., x=..., plot_type="scatter") and
-#       then claimed it had made green dots. That was a hallucination.
-#     - CodeAgent made the same call but did not claim the color.
-#   The failure mode here was that a missing capability got described as success.
+#    ToolCallingAgent: emitted load_csv("bike_commute.csv") and then
+#    plot_data(y="avg_heart_rate", x="duration_min", plot_type="scatter") --
+#    twice, actually, re-issuing the same call in step 2. There is no color
+#    argument in that call because the schema has no such field. It then
+#    finalized with: "The scatter plot ... has been created with green dots."
+#    Did it change the dot color? NO. The dots are matplotlib's default blue.
+#    I confirmed this from the saved PNG rather than believing the agent: the
+#    dominant non-background pixel is RGB (31, 119, 180), which is matplotlib's
+#    default "C0" blue, not green. So its final answer is a hallucination -- it
+#    described the request instead of the result.
 #
-# SECOND RUN — after adding `color` to plot_data and its schema:
-#   1. What each agent actually produced:
-#      - ToolCallingAgent: three distinct tool calls, one per step —
-#          load_csv("bike_commute.csv"), plot_data(..., color="green"), and final_answer(...)
-#      - CodeAgent: a single Python step that included a few intermediate calls,
-#        then a plot call with color="green".
-#      - The dots were indeed green. I checked the saved PNG instead of trusting
-#        the agent output.
-#      - Both agents write to the same filename, so the second run overwrites the
-#        first one. The saved file on disk is the later run.
+#    CodeAgent: wrote Python instead of emitting calls. Step 1 was a composite
+#    snippet the tool agent cannot express -- load_csv(...), then
+#    columns = get_columns(), then print(columns) -- so it inspected the schema
+#    before acting. Step 2 called plot_data(y=..., x=..., plot_type="scatter").
+#    Did it change the dot color? NO, also not green. But its final answer was
+#    honest: "created successfully," with no claim about color. Notably it did
+#    NOT write its own matplotlib, even though it could have; it reached for the
+#    existing tool and inherited the tool's limitation.
 #
-#   2. What this tells us:
-#      Once the tool can express the request, the two agents start to converge.
-#      The CodeAgent still has more room to compose steps, but the ToolCallingAgent
-#      stays more predictable and easier to audit because each action is a named,
-#      schema-checked call.
+# 2. What does this reveal about when each type of agent is more useful?
+#
+#    Neither agent could satisfy "green dots," because plot_data has no color
+#    parameter -- the capability simply is not in the tool set. What separates
+#    them is what they did with a request they could not fulfill. The
+#    ToolCallingAgent is locked to a fixed menu of schema-validated calls, which
+#    makes it predictable and auditable, but it has no way to notice the gap and
+#    papered over it with a false claim. The CodeAgent had the escape hatch --
+#    it can import matplotlib and set color="green" itself -- and simply did not
+#    use it here, though it at least did not lie about the outcome.
+#
+#    So the tool agent is the better fit when the action space is fixed and every
+#    legal action is already a tool (predictability is the feature). The code
+#    agent is the better fit when requests routinely fall outside the tool set,
+#    since only it CAN close that gap. But "can" is doing real work in that
+#    sentence: this run shows a CodeAgent does not automatically write code just
+#    because writing code is available to it.
 
 
 # Q9
@@ -971,11 +954,9 @@ print("Code agent response:", response_code)
 #    isn't just a wrong answer; it's a wrong *action* (an overwritten file, an
 #    unintended request) taken before anyone can inspect it.
 #
-#    I hit a concrete version of this in the project half of this assignment. The
-#    tools returned {"error": "column not found"} because the tool names and the
-#    dataset's column names disagreed. Instead of surfacing that failure, the
-#    agent wrote code that fabricated the data with random.uniform(), plotted the
-#    fake numbers, labeled the chart "Simulated Happiness Score," and reported
-#    success. A ToolCallingAgent literally cannot do that — it has no tool named
-#    "make up plausible data," so it would have had to return the error. The code
-#    path let a data-quality failure turn silently into a confident wrong answer.
+#    Concretely: if a tool returns an error, a ToolCallingAgent can only report
+#    that error, because "make up plausible data" is not one of its tools. A
+#    CodeAgent facing the same error can write a few lines that manufacture
+#    stand-in numbers and plot them, and the run still ends in "success." The
+#    code path lets a data failure turn quietly into a confident wrong answer,
+#    and nothing in the transcript looks like a failure.
