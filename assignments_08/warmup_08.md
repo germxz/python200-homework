@@ -26,26 +26,28 @@ Azure Virtual Machines
 IaaS. Infrastructure that lets you interface with your machine more directly leading to more user configuration while you pay for the tools.
 
 AWS S3 (Simple Storage Service)
-IaaS. A basic building block you assemble into whatever you're building, rather than a ready-made application or a platform for building one.
+IaaS. Raw infrastructure for storing objects — AWS manages the physical hardware, but you are responsible for how you structure, access, and use the storage, similar to other infrastructure building blocks like EC2.
 
 GitHub Codespaces
 PaaS. It gives you a ready-to-code cloud development environment (a container with your repo, dependencies, and VS Code in the browser) without you provisioning or managing any servers yourself. You're building on a platform, not configuring infrastructure.
 
 Snowflake
-SaaS. You log in and start running queries; Snowflake handles all the infrastructure, scaling, patching, and maintenance behind the scenes. It's marketed and consumed like a finished product (a "data platform" you use).
+PaaS. It's a managed data platform you build queries, pipelines, and analytics on top of, with all the underlying infrastructure, scaling, and maintenance handled for you — closer to a development platform than a finished, ready-to-use application.
 
 Supabase
 BaaS. It gives you a managed Postgres database, authentication, storage, and serverless functions as building blocks for an app you're developing, rather than a finished end-user application or raw infrastructure.
 
-IaaS is the most primitive form of service as it interacts more intimately with your machine. This means you are given the tools to configure and manage more; which will take more work. An example would be using AWS to tailor your server, storage and networking. My job would be bulding the pipelines needed to configure my application to perfection
-
-PaaS takes it down a level and manages a bit more for a developer and it saves them time so they can focus on building and such. An example I can think of is using the tools that Microsoft Azure provides to handle scalability, environments, and the OS for me without having to create my own tools. My job would be to focus on building and deploying quickly and efficiently if I were using a PaaS.
-
-SaaS is an application with a set of tools that allows you to complete a set of tasks. An example of it would be a service that is ready to use hassle-free in terms of programming. The job here would be to simply use the service and be worry free of anything as I have all the tools I paid for.
-
 # Cloud Concepts Question 4
 
-A managed data platform allows users to use preconfigured infrastructures built on top of infrastructure services like AWS that allow for a much easier experience working with huge database management. You would be able to use analytical functions, scale a really big database optimize it with the tools provided. The cost is money and less custom configurations available to you.
+IaaS is the most primitive form of service — it provides raw virtualized infrastructure (compute, storage, and networking) that you configure and manage yourself. An example is AWS EC2. I am responsible for managing the operating system, runtime, middleware, and security patching; the provider only manages the physical hardware and virtualization layer.
+
+PaaS takes it down a level and manages a bit more for a developer, saving them time so they can focus on building. An example is Microsoft Azure's App Service, which handles scalability, environments, and the OS for me. I am responsible for my application code and data; the provider manages the OS, runtime, and scaling infrastructure underneath it.
+
+SaaS is a complete, ready-to-use application delivered over the internet, with everything managed by the provider. An example is Gmail. I am responsible for essentially nothing beyond how I use the software and my own data within it; the provider manages the entire stack — infrastructure, platform, application, updates, and maintenance.
+
+# Managed Data Platforms (Databricks / Snowflake)
+
+A managed data platform allows users to use preconfigured infrastructures built on top of infrastructure services like AWS that allow for a much easier experience working with large-scale data management. You would be able to use analytical functions, scale a really big database, or optimize it with the tools provided. The cost is money and less custom configurations available to you compared to setting everything up yourself on AWS directly.
 
 # Cloud Concepts Q5
 
@@ -56,13 +58,13 @@ A situation where you probably won't need the cloud is if you already have the s
 # Cloud Landscape Q1
 
 Amazon Web Service
-AWS is the oldest and largest and it is seen in 33% of the cloud market. It also has a widest slection of configurations so it could be used by start-ups.
+AWS's primary strength is having the broadest, most mature catalog of services and configurations of any provider, making it the go-to for startups and enterprises that want maximum flexibility without being locked into a narrow toolset.
 
 Google Cloud Platform
-GCP specializes in Machine learning and data. It's good for large-scale analytics or for machine learning. Spotify would use this to build machine learning algorithms based on a user's listening record and predict the next best song.
+GCP's primary strength is machine learning and large-scale data analytics, built on the same technology (like TensorFlow and BigQuery) Google uses internally, making it a natural fit for data-and-ML-heavy companies like Spotify, which uses it to build recommendation algorithms based on listening history.
 
 Microsoft Azure
-It is the competitive in enterprise and government settings because of its integration to windows. Most if not all government operating systems are conquered by Microsoft and Azure provides a wide range of services from databases to computing power.
+Azure's primary strength is its deep integration with the Microsoft ecosystem (Windows Server, Active Directory, Office 365), making it especially competitive with enterprises and government agencies already standardized on Microsoft tools.
 
 # Cloud Landscape Q2
 

@@ -1,17 +1,15 @@
 # Step 5
 
-I have successfully set up mt project. Running query after initial run will throw an error.
+I successfully set up my Supabase project and created both required tables — weather_raw and weather_enriched are visible in the Table Editor with the correct columns. Note: re-running the CREATE TABLE statement a second time throws an "already exists" error, which is expected since the table was already created successfully on the first run.
 
 # Part B: Cloud Cost Analysis
 
 Scenario A: MONTHLY - $1.66
 YEARLY - $19.92
 
-Scenario B: MONTHLY - 2,580.38
-YEARLY - 30,964.56
+Scenario B: MONTHLY - $2,580.38
+YEARLY - $30,964.56
 
-The yearly numbers for scenario A was a bit surprising due to it being relatively cheap for an indie developer. Scenario B shows the prices I was imagining and it is expensive.
+Scenario A's yearly cost surprised me by how cheap it is for an indie developer, while Scenario B's cost matched what I expected from running a GPU continuously. I also found it interesting how many different EC2 instance families exist, each offering different amounts of compute, memory, and GPU power — there are far more configuration options than I expected, and I'd like to explore more of them.
 
-I found it very interesting that there are quite a lot of different service families to choose from that provide different amounts of computing power. There are tons of configurations to choose that I still need to look into.
-
-Scenario A will only compensate when needed and Scenario B will be active 24/7 regardless of low traffic bringing the bill to be more costly. Scenario B would be worth it for training a machine learning model or doing large-scale analytics around the clock. Even so, the bill is way more expensive so it has to be worth the tradeoff.
+Comparing the two: Scenario A only costs money while it's actually being used, whereas Scenario B runs 24/7 regardless of traffic, which is what drives its bill so much higher. A GPU instance like this is only worth that cost when a workload genuinely needs sustained, heavy processing power around the clock, such as training a machine learning model or running large-scale analytics continuously — otherwise, that expense would be paying for capacity that mostly sits idle.
