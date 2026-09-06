@@ -19,23 +19,13 @@ A: Horizontal Scaling
 
 # Cloud Concepts Q3
 
-Gmail
-SaaS. Google manages handling of data and maintenance and the sofware is ready to use.
+You need to store 10 TB of image files and retrieve them by filename from any machine. A: Object storage - AWS S3
 
-Azure Virtual Machines
-IaaS. Infrastructure that lets you interface with your machine more directly leading to more user configuration while you pay for the tools.
+You need to run an ML training job on a GPU for four hours, then shut it down. A: Compute (GPU compute) - AWS EC2 p3.2xlarge
 
-AWS S3 (Simple Storage Service)
-IaaS. Raw infrastructure for storing objects — AWS manages the physical hardware, but you are responsible for how you structure, access, and use the storage, similar to other infrastructure building blocks like EC2.
+You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets. A: Serverless compute - AWS Lambda
 
-GitHub Codespaces
-PaaS. It gives you a ready-to-code cloud development environment (a container with your repo, dependencies, and VS Code in the browser) without you provisioning or managing any servers yourself. You're building on a platform, not configuring infrastructure.
-
-Snowflake
-PaaS. It's a managed data platform you build queries, pipelines, and analytics on top of, with all the underlying infrastructure, scaling, and maintenance handled for you — closer to a development platform than a finished, ready-to-use application.
-
-Supabase
-BaaS. It gives you a managed Postgres database, authentication, storage, and serverless functions as building blocks for an app you're developing, rather than a finished end-user application or raw infrastructure.
+You need to send structured data to a large language model and get a text response back. A: LLM API - AWS Bedrock
 
 # Cloud Concepts Question 4
 
@@ -76,17 +66,13 @@ The third reason why the course switched was because Supabase provides tools nee
 
 # Cloud Landscape Q3
 
-You need to store 10 TB of image files and retrieve them by filename from any machine.
-A: Object storage - AWS S3
+You need to store 10 TB of image files and retrieve them by filename from any machine. A: Object storage - AWS S3
 
-You need to run an ML training job on a GPU for four hours, then shut it down.
-A: ML Platform - SageMaker AWS
+You need to run an ML training job on a GPU for four hours, then shut it down. A: Compute (GPU compute) - AWS EC2 p3.2xlarge
 
-You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets.
-A: Serverless compute - AWS Lambda
+You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets. A: Serverless compute - AWS Lambda
 
-You need to send structured data to a large language model and get a text response back.
-A: LLM API - AWS Bedrock
+You need to send structured data to a large language model and get a text response back. A: LLM API - AWS Bedrock
 
 # Cloud Landscape Q4
 
