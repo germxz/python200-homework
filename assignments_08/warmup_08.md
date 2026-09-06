@@ -19,23 +19,29 @@ A: Horizontal Scaling
 
 # Cloud Concepts Q3
 
-You need to store 10 TB of image files and retrieve them by filename from any machine. A: Object storage - AWS S3
+## Part A — Classification of each item (IaaS / PaaS / SaaS / BaaS)
 
-You need to run an ML training job on a GPU for four hours, then shut it down. A: Compute (GPU compute) - AWS EC2 p3.2xlarge
+1. **Gmail — SaaS.** Google manages the hardware, the platform, and the application itself, so the software is ready to use with no setup or maintenance on my end.
 
-You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets. A: Serverless compute - AWS Lambda
+2. **Azure Virtual Machines — IaaS.** Azure gives me a virtual machine and I configure it myself, installing the OS, runtime, and everything my application needs on top of it.
 
-You need to send structured data to a large language model and get a text response back. A: LLM API - AWS Bedrock
+3. **AWS S3 (Simple Storage Service) — IaaS.** S3 is raw storage infrastructure. AWS manages the physical hardware and durability, but I decide how the data is structured, accessed, and secured. It is not BaaS, because BaaS means a bundled set of backend services packaged together for app developers, while S3 is a single, general-purpose infrastructure building block I would have to combine with other services myself.
+
+4. **GitHub Codespaces — PaaS.** It gives me a ready-to-code cloud development environment (a container with my repo, dependencies, and VS Code in the browser) without provisioning or managing any servers. I am building on a platform, not configuring infrastructure.
+
+5. **Snowflake — PaaS.** It is a managed data platform I build queries, pipelines, and analytics on top of, with all the underlying infrastructure, scaling, and maintenance handled for me — closer to a development platform than a finished, ready-to-use application.
+
+6. **Supabase — BaaS.** Supabase bundles a managed Postgres database, authentication, storage, and serverless functions together as ready-made backend services, so I build my own frontend on top of an already-assembled backend instead of assembling one myself. That bundling is what makes it BaaS rather than IaaS (a single raw building block like S3) or SaaS (a finished application like Gmail).
+
+## Part B — IaaS, PaaS, and SaaS described
+
+**IaaS** is the most primitive form of service — it provides raw virtualized infrastructure (compute, storage, and networking) that you configure and manage yourself. Example: AWS EC2. The developer manages the operating system, runtime, middleware, the application, and security patching; the provider manages only the physical hardware, networking, and virtualization layer.
+
+**PaaS** takes it down a level and manages more for the developer, which saves time so they can focus on building. Example: Microsoft Azure App Service. The developer manages only their application code and data; the provider manages the operating system, runtime, middleware, scaling, and all the underlying infrastructure.
+
+**SaaS** is a complete, ready-to-use application delivered over the internet. Example: Gmail. The developer or user manages nothing but their own data and how they use the software; the provider manages the entire stack — infrastructure, platform, application, updates, and maintenance.
 
 # Cloud Concepts Question 4
-
-IaaS is the most primitive form of service — it provides raw virtualized infrastructure (compute, storage, and networking) that you configure and manage yourself. An example is AWS EC2. I am responsible for managing the operating system, runtime, middleware, and security patching; the provider only manages the physical hardware and virtualization layer.
-
-PaaS takes it down a level and manages a bit more for a developer, saving them time so they can focus on building. An example is Microsoft Azure's App Service, which handles scalability, environments, and the OS for me. I am responsible for my application code and data; the provider manages the OS, runtime, and scaling infrastructure underneath it.
-
-SaaS is a complete, ready-to-use application delivered over the internet, with everything managed by the provider. An example is Gmail. I am responsible for essentially nothing beyond how I use the software and my own data within it; the provider manages the entire stack — infrastructure, platform, application, updates, and maintenance.
-
-# Managed Data Platforms (Databricks / Snowflake)
 
 A managed data platform allows users to use preconfigured infrastructures built on top of infrastructure services like AWS that allow for a much easier experience working with large-scale data management. You would be able to use analytical functions, scale a really big database, or optimize it with the tools provided. The cost is money and less custom configurations available to you compared to setting everything up yourself on AWS directly.
 
@@ -47,14 +53,16 @@ A situation where you probably won't need the cloud is if you already have the s
 
 # Cloud Landscape Q1
 
-Amazon Web Service
-AWS's primary strength is having the broadest, most mature catalog of services and configurations of any provider, making it the go-to for startups and enterprises that want maximum flexibility without being locked into a narrow toolset.
+The three hyperscalers are Amazon Web Services (AWS), Google Cloud Platform (GCP), and Microsoft Azure.
 
-Google Cloud Platform
-GCP's primary strength is machine learning and large-scale data analytics, built on the same technology (like TensorFlow and BigQuery) Google uses internally, making it a natural fit for data-and-ML-heavy companies like Spotify, which uses it to build recommendation algorithms based on listening history.
+**Hyperscaler 1: Amazon Web Services (AWS)**
+AWS's primary strength is having the broadest, most mature catalog of services and configurations of any provider. The organizations most likely to use it are startups and enterprises that want maximum flexibility without being locked into a narrow toolset.
 
-Microsoft Azure
-Azure's primary strength is its deep integration with the Microsoft ecosystem (Windows Server, Active Directory, Office 365), making it especially competitive with enterprises and government agencies already standardized on Microsoft tools.
+**Hyperscaler 2: Google Cloud Platform (GCP)**
+GCP's primary strength is machine learning and large-scale data analytics, built on the same technology (like TensorFlow and BigQuery) Google uses internally. The organizations most likely to use it are data- and ML-heavy companies such as Spotify, which uses it to build recommendation algorithms based on listening history.
+
+**Hyperscaler 3: Microsoft Azure**
+Azure's primary strength is its deep integration with the Microsoft ecosystem (Windows Server, Active Directory, Office 365). The organizations most likely to use it are enterprises and government agencies already standardized on Microsoft tools.
 
 # Cloud Landscape Q2
 
@@ -66,16 +74,26 @@ The third reason why the course switched was because Supabase provides tools nee
 
 # Cloud Landscape Q3
 
-You need to store 10 TB of image files and retrieve them by filename from any machine. A: Object storage - AWS S3
+You need to store 10 TB of image files and retrieve them by filename from any machine.
+A: Object storage — AWS S3
 
-You need to run an ML training job on a GPU for four hours, then shut it down. A: Compute (GPU compute) - AWS EC2 p3.2xlarge
+You need to run an ML training job on a GPU for four hours, then shut it down.
+A: Compute — AWS EC2 (p3.2xlarge GPU instance)
 
-You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets. A: Serverless compute - AWS Lambda
+You need to host a web API that automatically scales up when traffic spikes and scales down when it quiets.
+A: Serverless compute — AWS Lambda
 
-You need to send structured data to a large language model and get a text response back. A: LLM API - AWS Bedrock
+You need to send structured data to a large language model and get a text response back.
+A: LLM API — AWS Bedrock
 
 # Cloud Landscape Q4
 
-A simple data project could be taking data from all recorded soccer games in the world and displaying different stats for the everchanging data. There are thousands of soccer games going on in the world everyday. I could use a managed relational database because soccer data will usually be structured by player, score, teams, and other metadata. Then I would use serverless compute to run the backend since it does not need a server 24/7 and will scale to fit server needs.
+A simple data project could be taking data from recorded soccer games around the world and displaying different stats for that constantly changing data. There are thousands of soccer games going on in the world every day.
 
-The benefit from consolidation to one platform would be more ease of access and compatibility of tools. Since these platforms have overlapping functionality, you can often cover most of what you need without leaving the platform, so you're not sacrificing much capability for the convenience gained. You will give up having to pay one bill for the job as using different platforms means getting charged on more than one.
+My stack would combine two different providers from the taxonomy table:
+
+1. **Managed relational DB — Supabase (Postgres).** Soccer data is naturally structured by player, team, score, and match metadata, so a relational database with rows and columns fits it well, and Supabase gives me a Postgres database without managing a server.
+
+2. **Serverless compute — AWS Lambda.** Lambda runs the backend API that queries the database and returns stats. It does not need a server running 24/7 and scales up automatically when traffic spikes, such as during a big match, then scales back down when it quiets.
+
+The benefit of consolidating to one platform instead would be more ease of access and compatibility of tools. Since these platforms have overlapping functionality, you can often cover most of what you need without leaving the platform, so you're not sacrificing much capability for the convenience gained. What you give up by splitting across two providers is the simplicity of one bill and one dashboard, since using different platforms means getting charged and managing credentials in more than one place.
