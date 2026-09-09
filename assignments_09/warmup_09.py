@@ -1,13 +1,10 @@
 import os
 
 from datetime import date
-from urllib import response
 
-from supabase import create_client, Client
+from supabase import create_client
 import os
 from dotenv import load_dotenv
-
-load_dotenv()
 
 
 
@@ -31,18 +28,17 @@ def get_client():           #loads supabse URL and key from .env file and create
         raise ValueError("missing Supabase URL. Please set in the .env file.")
     if not key:
         raise ValueError("missing Supabase key. Please set in the .env file.")
-    return create_client(url, key)\
+    return create_client(url, key)
         
         
 # Connection Q3
 
 # Row level security (RLS) allows an admin to control access of who can read and write to specific rows in the database.
-# It is disabled for this project because I will be the only user accessing the database. If I were to enable RLS, I 
-# would need to create policies for each table in the database to allow access to specific users. This would require me 
-# to create a user authentication system and manage user roles and permissions. For this project, I will keep RLS disabled
-# to simplify the development process. An application that would be good to keep RLS on would be an application that has several
-# users with different tiers of access to the database. For example, an application with free and paid users where they get 
-# different access to the database based on their subscription level.
+# It is disabled for this project because I will be accessing the database and making changes. If I were to enable RLS, I 
+# would not be able to edit this table and add rows. For this project, I will keep RLS disabled to simplify the development
+# process and easily add new rows to my table. An application that would be good to keep RLS on would be an application that
+# has several users with different tiers of access to the database. For example, an application with free and paid users where
+# they get different access to the database based on their subscription level.
 
 # --- Supabase-py CRUD ---
 

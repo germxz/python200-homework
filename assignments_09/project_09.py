@@ -1,4 +1,6 @@
-# Video link: PASTE YOUR LINK HERE
+
+
+# Video Link
 
 import os
 
@@ -73,6 +75,7 @@ def transform(data):
 
     print("\n--- Transform ---")
     print("First record:", records[0])
+    print("Last record:", records[-1])
 
     # I expected 365 records because 2023 was not a leap year, and I got 365.
     # If the count came back lower it could mean the archive is missing days for
