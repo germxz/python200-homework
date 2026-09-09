@@ -1,37 +1,30 @@
-
-
-# Video Link
+# Video Link: PASTE YOUR VIDEO URL HERE
 
 import os
+from datetime import date
 
 import requests
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase import create_client
+
+LATITUDE = 35.4676
+LONGITUDE = -97.5164
 
 
-def get_client() -> Client:
-    """Load Supabase credentials from .env and return a connected client."""
+def get_client():
     load_dotenv()
-
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY")
-
     if not url:
-        raise ValueError("SUPABASE_URL is missing. Add it to your .env file.")
+        raise ValueError("missing Supabase URL. Please set in the .env file.")
     if not key:
-        raise ValueError("SUPABASE_KEY is missing. Add it to your .env file.")
-
+        raise ValueError("missing Supabase key. Please set in the .env file.")
     return create_client(url, key)
 
 
 # Step 1: Extract
 
-CITY = "Oklahoma City"
-LATITUDE = 35.4676
-LONGITUDE = -97.5164
-
 def extract_weather():
-    """Fetch 2023 daily weather from the Open-Meteo historical archive API."""
     response = requests.get(
         "https://archive-api.open-meteo.com/v1/archive",
         params={
@@ -46,11 +39,8 @@ def extract_weather():
     response.raise_for_status()
     data = response.json()
 
-    print("--- Extract ---")
     print("Status:", response.status_code)
-    print("City:", CITY)
     print("Location:", data["latitude"], data["longitude"])
-    print("Units:", data["daily_units"])
     print("Days returned:", len(data["daily"]["time"]))
     return data
 
@@ -58,7 +48,6 @@ def extract_weather():
 # Step 2: Transform
 
 def transform(data):
-    """Turn the columnar API response into a list of row dictionaries."""
     daily = data["daily"]
     records = []
 
@@ -73,15 +62,12 @@ def transform(data):
             }
         )
 
-    print("\n--- Transform ---")
     print("First record:", records[0])
     print("Last record:", records[-1])
 
-    # I expected 365 records because 2023 was not a leap year, and I got 365.
-    # If the count came back lower it could mean the archive is missing days for
-    # this location, or the date range got clipped somewhere. A day can also come
-    # back with a null value for one variable even when the row itself is there,
-    # so the count can look right while individual values are missing.
+    # I expected 365 records for a full year because 2023 was not a leap year, and I got 365.
+    # If the numbers differed it could mean the archive is missing days for this location or the
+    # date range got clipped. A day can also come back with a null value even when the row is there.
 
     return records
 
@@ -89,51 +75,70 @@ def transform(data):
 # Step 3: Load
 
 def load(supabase, records):
-    """Upsert all records into weather_raw."""
+    before = supabase.table("weather_raw").select("date", count="exact").execute()
+    print("Row count before load:", before.count)
+
     response = (
         supabase.table("weather_raw")
         .upsert(records, on_conflict="date")
         .execute()
     )
-    print("\n--- Load ---")
-    print(f"Upserted {len(response.data)} rows into weather_raw")
+    print("Upserted", len(response.data), "rows into weather_raw")
 
-    # Running the script a second time upserts the same 365 dates and the row count
-    # in weather_raw does not change. That is idempotency. Because date is the primary
-    # key and I am using upsert instead of insert, a repeat run updates the rows that
-    # are already there rather than adding duplicates or erroring out. That makes the
-    # pipeline safe to re-run after a failure or to backfill a range I already loaded.
+    after = supabase.table("weather_raw").select("date", count="exact").execute()
+    print("Row count after load:", after.count)
 
-    return response.data
+    # Running the script a second time does not change the row count. That is idempotency. Because
+    # date is the primary key and I am using upsert, a repeat run updates the rows that are already
+    # there instead of adding duplicates, so the pipeline is safe to run as many times as I want.
 
 
 # Step 4: Verify
 
 def verify(supabase):
-    """Check what actually landed in the table."""
-    print("\n--- Verify ---")
-
-    # 1. Total rows (weather_raw)
     total = supabase.table("weather_raw").select("date", count="exact").execute()
-    print("Total rows:", total.count) 
+    print("Total rows:", total.count)
 
-    # 2. Earliest and latest dates, by sorting and taking one row from each end.
     earliest = supabase.table("weather_raw").select("date").order("date").limit(1).execute()
     latest = supabase.table("weather_raw").select("date").order("date", desc=True).limit(1).execute()
     print("Earliest date:", earliest.data[0]["date"])
     print("Latest date:", latest.data[0]["date"])
 
-    # 3. One specific day.
-    july4 = supabase.table("weather_raw").select("*").eq("date", "2023-07-04").execute()
-    if july4.data:
-        print("2023-07-04:", july4.data[0])
+    target = "2023-07-04"
+    exact = supabase.table("weather_raw").select("*").eq("date", target).execute()
+
+    if exact.data:
+        print(target, ":", exact.data[0])
     else:
-        print("2023-07-04 not found in the table.")
+        # Find the closest row before and after the target, then keep the nearer one.
+        before = (
+            supabase.table("weather_raw")
+            .select("*")
+            .lte("date", target)
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        after = (
+            supabase.table("weather_raw")
+            .select("*")
+            .gte("date", target)
+            .order("date")
+            .limit(1)
+            .execute()
+        )
+
+        target_date = date.fromisoformat(target)
+        candidates = before.data + after.data
+        nearest = min(
+            candidates,
+            key=lambda row: abs((date.fromisoformat(row["date"]) - target_date).days),
+        )
+        print(target, "not found. Nearest date is", nearest["date"], ":", nearest)
 
 
-if __name__ == "__main__":
-    supabase = get_client()
-    data = extract_weather()
-    records = transform(data)
-    load(supabase, records)
-    verify(supabase)
+supabase = get_client()
+data = extract_weather()
+records = transform(data)
+load(supabase, records)
+verify(supabase)
