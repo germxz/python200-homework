@@ -1,4 +1,4 @@
-# Video Link: PASTE YOUR VIDEO URL HERE
+# Video Link: https://www.youtube.com/watch?v=7PohQZBEQKY
 
 import os
 from datetime import date
@@ -140,5 +140,6 @@ def verify(supabase):
 supabase = get_client()
 data = extract_weather()
 records = transform(data)
+
 load(supabase, records)
 verify(supabase)
