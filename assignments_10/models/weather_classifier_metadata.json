@@ -1,0 +1,20 @@
+{
+  "python_version": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+  "sklearn_version": "1.9.0",
+  "feature_names": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "precipitation_sum",
+    "wind_speed_10m_max"
+  ],
+  "best_params": {
+    "classifier__C": 1.0
+  },
+  "test_auc": 0.8903,
+  "city": {
+    "name": "Oklahoma City",
+    "latitude": 35.47,
+    "longitude": -97.52
+  },
+  "label_thresholds": "good_run = temp_max 7-26C, temp_min >= 0C, precip < 3.0mm, wind < 35 km/h (wind raised from 30 for OKC climate)"
+}
