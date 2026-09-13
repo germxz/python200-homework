@@ -1,4 +1,4 @@
-# Video link:
+# Video link: https://www.youtube.com/watch?v=L61TbYhvC9k
 
 import os
 import json
@@ -19,7 +19,7 @@ with open("models/weather_classifier_metadata.json") as f:
 
 feature_names = metadata["feature_names"]
 raw_rows = supabase.table("weather_raw").select("*").execute().data
-enriched_rows = supabase.table("weather_enriched").select("date").execute().data
+enriched_rows = supabase.table("weather_enriched").select("date").not_.is_("llm_summary", "null").execute().data   # not is for immunity to null llm summaries
 already_done = {row["date"] for row in enriched_rows}
 to_process = [row for row in raw_rows if row["date"] not in already_done]
 
@@ -133,7 +133,7 @@ print(f"\nDays classified as good for running: {good_count}")
 
 # Step 6: Reflect
 
-# 1. My metadata says the classifier was trained on Oklahoma City, not Charlotte, and the
+# 1. My metadata shows the classifier was trained on Oklahoma City, not Charlotte, and the
 # label thresholds note says the wind cutoff was already raised from 30 to 35 km/h for the
 # OKC climate. So my Week 9 city and my training city match, and I expect the predictions to
 # hold up. If they had not matched, I would expect the model to do poorly, because "good for
@@ -141,21 +141,22 @@ print(f"\nDays classified as good for running: {good_count}")
 # unusual in a cooler city, so a model trained on one would draw the line in the wrong place
 # for the other. The features themselves would still be valid numbers, but the labels they
 # were trained against would encode the wrong idea of a good day.
-#
-# 2. The LLM is purely additive. It receives the prediction as a finished fact and writes a
+
+
+# 2. The LLM is an additive. It receives the prediction as a finished fact and writes a
 # sentence around it, and nothing in my pipeline lets its output change the good_for_running
-# column. That is the right design, because the classifier is the part that was actually
-# trained on labeled data, while the LLM has never seen my weather set. The risk is that the
-# LLM can still contradict the prediction in words while the column stays put. I saw this
-# concretely; before I added "always agree with the model's prediction" to my system prompt,
-# some rows came back with good_for_running set to True while the sentence said the day was
-# not good for running. The LLM cannot change the boolean, but it can disagree with it in
-# words, which makes the row useless either way.
-#
-# 3. Latency, not cost. At gpt-4o-mini prices 50,000 summaries is only a couple of dollars,
-# but my loop makes one request at a time and waits for each one. At roughly a second per
-# call that is close to fourteen hours for a single run, and any crash in the middle wastes
-# everything generated so far. I would fix it by sending requests concurrently instead of one
-# by one, and by writing to Supabase in chunks as I go rather than holding all 50,000 records
-# in memory for one upsert at the end. Incremental processing matters much more at that size
+# column. The classifier is the part that was actually trained on labeled data, while the LLM 
+# has never seen my weather set. The risk is that the LLM can still contradict the prediction 
+# in words while the column stays put. I saw this concretely; before I added "always agree with
+# the model's prediction" to my system prompt, some rows came back with good_for_running set to
+# True while the sentence said the day was not good for running. The LLM cannot change the boolean,
+# but it can disagree with it in words, which makes the row useless either way.
+
+
+# 3. Latency would be the biggest concern, not cost. At gpt-4o-mini prices 50,000 summaries is 
+# only a couple of dollars, but my loop makes one request at a time and waits for each one. At 
+# roughly a second per call that is close to fourteen hours for a single run, and any crash in 
+# the middle wastes everything generated so far. I would fix it by sending requests concurrently
+# instead of one  by one, and by writing to Supabase in chunks as I go rather than holding all 50,000
+# records in memory for one upsert at the end. Incremental processing matters much more at that size
 # too, since it means a rerun after a crash only pays for what is actually missing.
