@@ -1,4 +1,4 @@
-#--- scikit-learn api ---
+# --- scikit-learn API ---
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import os
@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 BASE = os.path.dirname(__file__)
 OUT = os.path.join(BASE, "outputs")
 os.makedirs(OUT, exist_ok=True)
-#Q1
+# Q1
 
 years  = np.array([1, 2, 3, 5, 7, 10]).reshape(-1, 1)
 salary = np.array([45000, 50000, 60000, 75000, 90000, 120000])
@@ -57,7 +57,7 @@ plt.close()
 
 # In the scatter plot, I see three color coded clusters of plotted points with an "X" in the center.
 
-# --- linear regression ---
+# --- Linear Regression ---
 print("linear regression")
 
 
@@ -67,7 +67,7 @@ age    = np.random.randint(20, 65, num_patients).astype(float)
 smoker = np.random.randint(0, 2, num_patients).astype(float)
 cost   = 200 * age + 15000 * smoker + np.random.normal(0, 3000, num_patients)
 
-#Q1
+# Q1
 print("Q1")
 plt.figure()
 plt.scatter(age, cost, c=smoker, cmap="coolwarm")
@@ -78,7 +78,7 @@ plt.savefig(os.path.join(OUT, "cost_vs_age.png"))
 plt.close()
 # I see in this scatter plot that it is easy to form a boundary between smokers and non smokers. Without looking at a legend, it is safe to assume that the smokers are the ones who pay more for healthcare and the red plotted points prove it.
 
-#Q2 
+# Q2
 print("Q2")
 
 X= age.reshape(-1,1)
@@ -89,7 +89,7 @@ print(f"X_test {X_test.shape}")
 print(f"Y_test {Y_test.shape}")
 print(f"Y_train {Y_train.shape}")
 
-#Q3
+# Q3
 
 Question3 = LinearRegression()  
 Question3.fit(X_train, Y_train)
