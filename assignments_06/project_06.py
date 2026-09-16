@@ -88,6 +88,9 @@ for node in response.source_nodes:
 #It seems like the problem was that the output chunks only had a similarity score range of 0.70 to 0.7331 which is low compared to more correct 
 #outputs with scores of 0.77 and up. At this threshold, the LLM will still try to generate an answer that to pertain to recommendations.
 # The output was simply the name of the drink and nothing more. No explanation as to why that drink was chosen. 
+# The tone shifted, too. On the five good queries it answered in a grounded, matter-of-fact way; here it stayed
+# just as confident and definitive even though the retrieval was weak, with no hedging or "I'm not sure." That
+# confident tone on low-similarity chunks is exactly the wrong signal to send.
 # What I would change is raising the similarity score threshold so lower confidence answers aren't answered so confidently. Perhaps a comment saying "I can't give you a confident answer"
 # when it is below the new threshold.
 
