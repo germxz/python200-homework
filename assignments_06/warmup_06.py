@@ -19,8 +19,10 @@ else:
 # --- RAG Concepts ---
 
 #Concepts Q1
-#SCENARIO A: In this scenario, the best approach would be the using RAG. Since I need to extract data from a database 
-# of actively changing PDFs, I can use RAG to reference to the most recent database for its responses. 
+#SCENARIO A: RAG. The policy library is hundreds of PDFs that change every quarter, and the assistant has
+# to answer from whatever the current versions say. RAG re-reads the live document store at query time, so
+# each quarter's updates are picked up automatically without retraining. Prompt engineering can't hold that
+# much text, and fine-tuning would bake in stale policies that go out of date every three months.
 
 #SCENARIO B: Due to the need for a specific tuning for a chatbot, The company can use their datasets to fine-tune the model on its own samples.
 # so it shifts the direction the output will take. This will help performance, token cost, and keep things minimal as requested.
@@ -138,7 +140,7 @@ print(f"Name of document: {best_result_name} ")
 query = "Do you have anything without caffeine?"
 
 result2 = simple_keyword_retrieval(query=query,documents=documents, verbose=True)
-print(result2)
+print(f"Selected document: {result2[0][0]}")
 
 
 
