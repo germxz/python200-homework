@@ -37,7 +37,7 @@ SYSTEM_PROMPT = (
 
 @task(name="extract_weather", retries=2, retry_delay_seconds=10)
 def extract() -> list:
-    """Fetch 2023 daily weather for Oklahoma City from the Open-Meteo archive."""
+    """Fetch 2023 daily weather for Seattle from the Open-Meteo archive."""
     logger = get_run_logger()
 
     url = "https://archive-api.open-meteo.com/v1/archive"
@@ -199,7 +199,7 @@ def load_enriched(enrichment_records: list) -> None:
     print(f"Upserted {written} rows into weather_enriched")
 
 # flow
-@flow(name="weather-etl", log_prints=True, description="Extract 2023 OKC weather, classify it, enrich it with an LLM, load to Supabase.")
+@flow(name="weather-etl", log_prints=True, description="Extract 2023 Seattle weather, classify it, enrich it with an LLM, load to Supabase.")
 def etl_pipeline():
     raw_records = extract()
     load_raw(raw_records)
@@ -210,4 +210,3 @@ def etl_pipeline():
 
 if __name__ == "__main__":
     etl_pipeline()
-

@@ -4,11 +4,13 @@ from prefect import task, get_run_logger
 
 # Prefect Q1
 
-# A @task in prefect is used for classifying tools like MLdata transformation or calling API's. A @task will execute individually within a @flow without getting blocked. 
-# On the other hand, a @flow will wait for the pipeline witihin it to execute before allowing the next @flow to run. @flow is used for stuctural integrity as it classifies
-# tasks within a certain department. I would not use a @task or @flow for my farenheight_to_celcius function because it is not bound to fail. All it takes is known numbers 
-# and run some math which will never fail nunless the function itself has a bug. It has no external forces that will affect the math.
-
+# A @task is a single unit of work in a pipeline, usually something that touches the outside world like a data
+# transformation, an API call, or a database write. Prefect tracks each task run on its own, so it gets its own
+# state, its own logs, and its own retries. A @flow is the container that calls those tasks and sets the order
+# they run in, and it is what shows up as one pipeline run in the UI. I would not use @task on my
+# celsius_to_fahrenheit function because it is not bound to fail. All it takes is known numbers and some math,
+# which will never fail unless the function itself has a bug. It has no external forces that will affect it, so
+# retries would never do anything and it would only clutter the UI with a task run that tells me nothing.
 
 
 # Prefect Q2
@@ -19,19 +21,14 @@ from prefect import task, get_run_logger
 # @task(name="call_api", retries=3, retry_delay_seconds=30)
 
 
-
-
-
 # Prefect Q3
 
-# If the pipeline fails at "transform", the Prefect UI dashboard shows the run
-# marked Failed. I click into that run, where I can see transform is the task
-# that broke (and that load_enriched never ran because of it).
-
-# Clicking the failed task gives me several tabs. Details has the state message,
-# run ID, and timing, but the Logs tab is where the real answer is: the
-# exception (e.g. KeyError: 'series is not deined') and the traceback with the file and
-# line number in my own code.
+# If the pipeline fails at "transform", the Prefect UI dashboard shows the run marked Failed. I click into that
+# run, where I can see transform is the task that broke, and that load_enriched never ran because of it.
+#
+# Clicking the failed task gives me several tabs. Details has the state message, run ID, and timing, but the
+# Logs tab is where the real answer is: the exception (e.g. KeyError: 'temperature_2m_max') and the traceback
+# with the file and line number in my own code.
 
 
 # Production Patterns
@@ -39,18 +36,27 @@ from prefect import task, get_run_logger
 
 # Production Q1
 
-# Raise for status will stop further execution if something goes wrong in a task. Instead of still running the garbled data, the pipeline 
-# will raise the error and stop when something breaks. On the other hand, printing an error with response status code will not raise an error
-# and stil keep the pipeline running and using the corrupted data. On a 500: with raise_for_status() the task is marked Failed and the downstream tasks never run (NotReady);
-# with the print, the task is marked Completed and the downstream tasks run anyway on bad data.
+# raise_for_status() will stop further execution if something goes wrong in a task. It checks the status code
+# and raises an HTTPError on any 4xx or 5xx response, so instead of running on garbled data the pipeline raises
+# and stops when something breaks. Printing an error with response.status_code does not raise anything, so the
+# task keeps running and passes the corrupted data downstream.
+#
+# On a 500: with raise_for_status() the task is marked Failed and the downstream tasks never run (NotReady).
+# With the print, the task is marked Completed and the downstream tasks run anyway on bad data.
 
 
 # Production Q2
 
-# upsert with on_conflict="date" keeps the re-run from duplicating rows. load_raw already loaded those dates before transform crashed, 
-# so on the second run the database updates the existing rows instead of adding copies. That makes load_raw idempotent, meaning it's 
-# safe to run as many times as I need. With insert, every re-run would append the same dates again, so transform would run on duplicated 
-# data and produce inflated counts and skewed averages. I'd have to delete the duplicates by hand before each re-run.
+# upsert with on_conflict="date" is what makes the re-run safe. load_raw already loaded those dates before
+# transform crashed, so on the second run the database updates the existing rows instead of treating them as
+# new. That makes load_raw idempotent, meaning it is safe to run as many times as I need.
+#
+# With plain insert, the second run would hit a unique constraint violation on the first date that is already
+# in the table, because date is the primary key. Postgres rejects it and raises a duplicate key error, so
+# load_raw fails before writing anything and the pipeline never reaches the transform fix I was trying to test.
+# I would have to delete the rows from the first partial run by hand before every re-run, which is exactly the
+# manual cleanup upsert exists to avoid.
+
 
 # Production Q3
 
@@ -59,15 +65,20 @@ def load_enriched(enrichment_records):
     logger = get_run_logger()
     logger.info(f"upserted {len(enrichment_records)} enrichment records")
 
+
 # Production Q4
 
-
-# The incremental check looks at what's already been enriched and filters down to just the new records before the
-# ML and LLM steps run. That's what makes the task idempotent: re-running it doesn't redo work that's already done, 
-# so the output is the same whether I run it once or five times. If I were to remove incremental processing on all
-# 365 records, I would spend more money on API calls on AI models or rack up some kind of API bill which is wasting 
-# the tokens on corrupted data when the pipeline fails in some parts.# It would also make every run take as long as
-# a full backfill, turning something that finishes in seconds into minutes, which risks hitting the API rate limit or
-# timing out the task. And since LLM output isn't deterministic, re-processing the same record can give a different answer
-# each time, so the upsert overwrites good historical values with new ones and my data quietly changes even though
-# the source never did.
+# The incremental check looks at what has already been enriched and filters down to just the new records before
+# the ML and LLM steps run. That is what makes the task idempotent: re-running it does not redo work that is
+# already done, so the output is the same whether I run it once or five times.
+#
+# If I removed it and ran on all 365 records every time, the first cost is money. Every record is one API call
+# to the model, so a re-run after a crash pays for all 365 again instead of the handful that are actually
+# missing, and on a daily schedule that is 365 calls a day to regenerate sentences I already have.
+#
+# The second cost is time. The LLM loop is sequential and waits on each call, so a full pass takes minutes
+# instead of seconds, which risks hitting the API rate limit or timing out the task.
+#
+# The third is data correctness, and that is the one that actually worries me. LLM output is not deterministic,
+# so re-processing a record I already enriched gives a different sentence, and the upsert overwrites the good
+# historical value with the new one. My source data never changed but my enriched table quietly did.
