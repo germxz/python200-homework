@@ -1,36 +1,48 @@
+from pathlib import Path
+import string
+import logging
+
 from dotenv import load_dotenv
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
-import os
-
-import logging  
-logging.getLogger("pypdf").setLevel(logging.ERROR) # remove logs 
-
 from llama_index.core.evaluation import FaithfulnessEvaluator, RelevancyEvaluator
 from llama_index.llms.openai import OpenAI
 
+logging.getLogger("pypdf").setLevel(logging.ERROR)  # remove logs
 
 
 if load_dotenv():
     print("API key loaded successfully.")
 else:
     print("Warning: could not load API key. Check your .env file.")
-    
-    
+
+
+def print_sources(response, chars=150):
+    """Print the similarity score and a text snippet for each retrieved chunk."""
+    for node_with_score in response.source_nodes:
+        print(f"Similarity Score: {node_with_score.score:.4f}")
+        print(f"Text Snippet: {node_with_score.node.get_content()[:chars]}...")
+        print("-" * 30)
+
+
 # --- RAG Concepts ---
 
 #Concepts Q1
-#SCENARIO A: RAG. The policy library is hundreds of PDFs that change every quarter, and the assistant has
+
+# SCENARIO A:
+# The policy library is hundreds of PDFs that change every quarter, and the assistant has
 # to answer from whatever the current versions say. RAG re-reads the live document store at query time, so
 # each quarter's updates are picked up automatically without retraining. Prompt engineering can't hold that
 # much text, and fine-tuning would bake in stale policies that go out of date every three months.
 
-#SCENARIO B: Fine-tuning. The startup has 3,000 in-house examples of a specific brand voice that barely
+# SCENARIO B:
+# The startup has 3,000 in-house examples of a specific brand voice that barely
 # appears online, so the goal is to change how the model writes, not to give it facts to look up. Training on
 # those examples bakes the style into the model itself; RAG and prompt engineering can supply content but
 # can't reliably reshape the voice the way fine-tuning on the examples does.
 
 
-#SCENARIO C: Prompt engineering. You only need to ask an LLM a few questions over a single report, so you
+# SCENARIO C:
+# You only need to ask an LLM a few questions over a single report, so you
 # can paste the report straight into the prompt and ask (one-shot or few-shot). RAG is overkill here: it
 # means building a database and embeddings for what already fits in one prompt. Fine-tuning is wrong too:
 # it is expensive, needs a training dataset, and bakes in knowledge you only need once, not repeatedly.
@@ -64,13 +76,11 @@ else:
 #     "Inject retrieved chunks into the prompt",  # paste those chunks into the prompt as context
 #     "Generate a response from the LLM",         # the LLM answers using the injected context
 # ]
+
 # The first three steps build the index once, ahead of time; the last five run on every query.
 
+
 # --- Keyword RAG ---
-
-
-import string
-from pathlib import Path
 
 def simple_keyword_retrieval(query, documents, verbose=True):
     """Keyword retrieval using token overlap scoring."""
@@ -113,8 +123,8 @@ def simple_keyword_retrieval(query, documents, verbose=True):
             print("\nNo overlapping keywords found.")
         return [("None found", "No relevant content.")]
 
-#Keyword Q1:
 
+#Keyword Q1:
 
 query = "What are your hours on weekends?"
 
@@ -125,7 +135,7 @@ documents = {
     "loyalty.txt": "Join our loyalty program to earn one point per dollar spent. Redeem 100 points for a free drink of your choice.",
 }
 
-result = simple_keyword_retrieval(query, documents= documents, verbose=True)
+result = simple_keyword_retrieval(query, documents=documents, verbose=True)
 best_result_name = result[0][0]
 print(f"Name of document: {best_result_name} ")
 
@@ -141,9 +151,8 @@ print(f"Name of document: {best_result_name} ")
 
 query = "Do you have anything without caffeine?"
 
-result2 = simple_keyword_retrieval(query=query,documents=documents, verbose=True)
+result2 = simple_keyword_retrieval(query=query, documents=documents, verbose=True)
 print(f"Selected document: {result2[0][0]}")
-
 
 
 # Selected document: None found - all four scored 0 overlap, so keyword RAG returned no match (got it wrong).
@@ -159,8 +168,8 @@ print(f"Selected document: {result2[0][0]}")
 # still related to a menu of caffeinated drinks even without shared words.
 
 
-#Keyword Q3:
 
+#Keyword Q3:
 
 query = "How do I sign up for rewards?"
 
@@ -169,7 +178,7 @@ query = "How do I sign up for rewards?"
 
 
 
-result3= simple_keyword_retrieval(query= query, documents=documents, verbose=True)
+result3 = simple_keyword_retrieval(query=query, documents=documents, verbose=True)
 print(result3)
 
 # My prediction was correct and I wasn't too surprised. The model did not match any of the words within
@@ -183,16 +192,16 @@ print(result3)
 #Semantic Q1
 
 # 1. vector embeddings transform unstructured, "chaotic" data into ordered numerical
-#    arrays (vectors).  These arrays are stored in a vector database, which organizes 
-#    them in a multi-dimensional space where mathematical proximity equals semantic meaning. 
+# arrays (vectors).  These arrays are stored in a vector database, which organizes
+# them in a multi-dimensional space where mathematical proximity equals semantic meaning.
 
-# 2. The score that is closest to 1 will be the more meaningful chunk. That means that the embedding 
-#   of 0.85 has more similarities by word definition to the chunk than the 0.30 chunk.
+# 2. The score that is closest to 1 will be the more meaningful chunk. That means that the embedding
+# of 0.85 has more similarities by word definition to the chunk than the 0.30 chunk.
 
 
 # 3. Semantic RAG can find a chunk even if the exact word doesn't appear in documents because the model will use a neural
-#   network to embed the word's meanings. This allows the retrieval system to compare it to similar embeddings and how similar they are by 
-#   using cosine similarity.
+# network to embed the word's meanings. This allows the retrieval system to compare it to similar embeddings and how similar they are by
+# using cosine similarity.
 
 
 
@@ -208,7 +217,6 @@ print(result3)
 #       | Relevance score         | Number of overlapping keywords | Cosine similarity between embeddings   |
 
 # ---Llama Index ---
- 
 
 
 pdf_directory = Path(__file__).parent / "brightleaf_pdfs"
@@ -216,7 +224,8 @@ docs = SimpleDirectoryReader(input_dir=str(pdf_directory)).load_data()
 
 #LLama Index  Q1
 
-questions = [    "What employee benefits does BrightLeaf offer?",
+questions = [
+    "What employee benefits does BrightLeaf offer?",
     "What are BrightLeaf's security policies?",
 ]
 
@@ -224,15 +233,11 @@ index = VectorStoreIndex.from_documents(docs)
 
 query_engine = index.as_query_engine(similarity_top_k=3)
 
-for q in questions: 
+for q in questions:
     print(f"\nQ: {q}")
     response = query_engine.query(q)
     print("A:", response)
-    
-    for node_with_score in response.source_nodes:
-        print(f"Similarity Score: {node_with_score.score:.4f}")
-        print(f"Text Snippet: {node_with_score.node.get_content()[:150]}...")
-        print("-" * 30)
+    print_sources(response)
 
 
 
@@ -277,17 +282,13 @@ for k in [1, 5]:
     response = query_engine.query(question)
     print(question)
     print(f"Answer: {response}")
-
-    for node_with_score in response.source_nodes:
-        print(f"Similarity Score: {node_with_score.score:.4f}")
-        print(f"Text Snippet: {node_with_score.node.get_content()[:150]}...")
-        print("-" * 30)
+    print_sources(response)
 
 
 # When comparing both outputs from k=[1,5] you can see that it did make a difference in
-# output. K=5 cause the output to be more descriptive with its company programs. This was due to it exctracting 5 chunks 
-# from the text. K=1 produced a very similar output but it wasn't as descriptive and in-depth as k=5. K=1 used the 
-# same first chunk as k=5 but only the first one so it is expected to have a slightly more  generalized output. 
+# output. K=5 cause the output to be more descriptive with its company programs. This was due to it exctracting 5 chunks
+# from the text. K=1 produced a very similar output but it wasn't as descriptive and in-depth as k=5. K=1 used the
+# same first chunk as k=5 but only the first one so it is expected to have a slightly more  generalized output.
 #
 # Is more retrieved context always better? No. k=5 was more descriptive here, but pulling more chunks also
 # pulls in less-relevant ones (the security/mission docs scored ~0.81 on a benefits query). More context
@@ -298,28 +299,24 @@ for k in [1, 5]:
 
 
 #LLama Index Q3
-question1= "Does the company have an inclusive environment and do they have any discounts for national coffee day?"
+question1 = "Does the company have an inclusive environment and do they have any discounts for national coffee day?"
 
-query_engine = index.as_query_engine()
+query_engine = index.as_query_engine(similarity_top_k=3)
 
-response1= query_engine.query(question1)
+response1 = query_engine.query(question1)
 
-print(F"llama Q3: {question1}")
+print(f"llama Q3: {question1}")
 print(f"A: {response1}")
+print_sources(response1)
 
-for node_with_score in response1.source_nodes:
-    print(f"Similarity Score: {node_with_score.score:.4f}")
-    print(f"Text Snippet: {node_with_score.node.get_content()[:150]}...")
-    print("-" * 30)
-    
 # I expected an answer from the first sentence since companies usually mention their inclusivity practices.
 # I didn't know what to expect from the second sentence asking about dscounts for national coffee day. It was
-# a sentence not related to the company and it responded that there is no mention of "coffee day discounts". 
+# a sentence not related to the company and it responded that there is no mention of "coffee day discounts".
 # I think the system handled this query well. It managed to acknowledge it's lack of understanding in that area
-# because of absence of the business's documentation for any discounts. 
+# because of absence of the business's documentation for any discounts.
 
-# If there's something I must change, it would be the simimlarity score threshold to have a consistent "I'm not sure" 
-# output for when inputs start getting vague. This will ensure that the system doesn't try to answer 
+# If there's something I must change, it would be the simimlarity score threshold to have a consistent "I'm not sure"
+# output for when inputs start getting vague. This will ensure that the system doesn't try to answer
 #something it can't answer fully correctly.
 #
 # Failure mode, stated plainly: the retriever returns its best available chunks even when none are strongly
@@ -335,7 +332,7 @@ q1 = "When is the CEO's birthday?"
 
 llm = OpenAI(model="gpt-4o-mini")
 faithfulness = FaithfulnessEvaluator(llm=llm)
-relevancy =  RelevancyEvaluator(llm=llm)
+relevancy = RelevancyEvaluator(llm=llm)
 
 query_engine = index.as_query_engine(similarity_top_k=3)
 response = query_engine.query(q)
@@ -401,9 +398,9 @@ print("-" * 30)
 
 
 # [4] What LLM-as-a-judge means and why simple metrics fall short:
-# LLM-as-a-judge means using a separate LLM call to read the query, the response, 
+# LLM-as-a-judge means using a separate LLM call to read the query, the response,
 # and the retrieved context, then assess qualities like faithfulness and relevancy that
-# don't have a single "correct" string to match against. Simple accuracy metrics (like exact 
+# don't have a single "correct" string to match against. Simple accuracy metrics (like exact
 # match or keyword overlap) don't work well for RAG evaluation because responses are open-ended natural
 # language - two answers can be worded completely differently but be equally correct, or worded
 # similarly but differ in whether they're actually grounded in the source material.

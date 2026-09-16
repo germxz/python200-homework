@@ -1,39 +1,52 @@
 from pathlib import Path
+import logging
+
 from dotenv import load_dotenv
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
-
-import logging
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-# step 1
+def print_sources(response, chars=200, limit=None):
+    """Print the document name, similarity score, and a text snippet for retrieved chunks.
 
-docs_dir = Path(__file__).parent / "groundwork_docs"
-assert docs_dir.exists(), f"Document directory not found: {docs_dir}"
+    limit=1 prints only the top node; limit=None prints all of them.
+    """
+    nodes = response.source_nodes if limit is None else response.source_nodes[:limit]
+    for node_with_score in nodes:
+        print(f"Document Name: {node_with_score.node.metadata['file_name']}")
+        print(f"Similarity Score: {node_with_score.score:.4f}")
+        print(f"Text Snippet: {node_with_score.node.get_content()[:chars]}...")
+        print("-" * 30)
+
+
+# step 1
 
 if load_dotenv():
     print("API key loaded successfully.")
 else:
     print("Warning: could not load API key. Check your .env file.")
 
+docs_dir = Path(__file__).parent / "groundwork_docs"
+assert docs_dir.exists(), f"Document directory not found: {docs_dir}"
+
 
 # Step 2
-documents= SimpleDirectoryReader(str(docs_dir)).load_data()
+documents = SimpleDirectoryReader(str(docs_dir)).load_data()
 
 print(f"Loaded {len(documents)} documents")
 for doc in documents:
     print(f"-  {doc.metadata['file_name']}")
-    
-    
+
+
  # step 3
-    
-index= VectorStoreIndex.from_documents(documents)
+
+index = VectorStoreIndex.from_documents(documents)
 
 query_engine = index.as_query_engine(similarity_top_k=3)
 print("Index built successfully. Ready to answer questions.")
 
-#Step 4 
+#Step 4
 
 
 questions = [
@@ -45,25 +58,19 @@ questions = [
 ]
 
 for q in questions:
-    print(f"Question: {q}")
+    print(f"\nQuestion: {q}")
     response = query_engine.query(q)
     print(f"Answer: {response}")
-    
-    top_node = response.source_nodes[0]
-    
-    print(f"Document Name:{top_node.node.metadata['file_name']} ")
-    print(f"Similarity Score: {top_node.score}")
-    print(f" Text Snippet: {top_node.get_content()[:200]}...")
-    print("-"*30)
-        
+    print_sources(response, limit=1)
+
 # After running all five document queries, most responses were confident and accurate - the answers
 # were concise and the retrieved document matched what the question was actually asking
 # about. The one exception was the dairy-free milk question: it pulled from
 # seasonal_specials.txt (a limited-time lemonade description) instead of a more
 # complete source like the menu or FAQ, and gave a vague, generalized answer without
 # citing which options existed. What surprised me was that the model still sounded
-# fully confident even though the answer was incomplete and weakly grounded. When I increased the 
-# snippet word count, I saw that the documentation does refer to dairy free options but it 
+# fully confident even though the answer was incomplete and weakly grounded. When I increased the
+# snippet word count, I saw that the documentation does refer to dairy free options but it
 # Doesn't describe which drinks are dairy free.
 
 
@@ -72,24 +79,19 @@ vague_q = "What drink would you recommend for someone who just got out of a roug
 query_engine = index.as_query_engine(similarity_top_k=3)
 response = query_engine.query(vague_q)
 
-print(f"Question: {vague_q}")
+print(f"\nQuestion: {vague_q}")
 print(f"Answer: {response}")
+print_sources(response)
 
-for node in response.source_nodes:
-    print(f"Document Name: {node.node.metadata['file_name']}")
-    print(f"Similarity Score: {node.score:.4f}")
-    print(f"Text Snippet: {node.node.get_content()[:200]}...")
-    print("-" * 30)
-    
-    
-    
+
+
 # [What I asked / why I expected it to be hard]
 # I asked what drinks does it recommend after a breakup. I supposed this would be hard because it involves human emotions
 # and recommendations, and they're likely not accounted for in our groundwork_docs index.
 # [What went wrong]
-#It seems like the problem was that the output chunks only had a similarity score range of 0.70 to 0.7331 which is low compared to more correct 
+#It seems like the problem was that the output chunks only had a similarity score range of 0.70 to 0.7331 which is low compared to more correct
 #outputs with scores of 0.77 and up. At this threshold, the LLM will still try to generate an answer that to pertain to recommendations.
-# The output was simply the name of the drink and nothing more. No explanation as to why that drink was chosen. 
+# The output was simply the name of the drink and nothing more. No explanation as to why that drink was chosen.
 # [How the tone changed]
 # The tone shifted, too. On the five good queries it answered in a grounded, matter-of-fact way; here it stayed
 # just as confident and definitive even though the retrieval was weak, with no hedging or "I'm not sure." That
@@ -97,7 +99,6 @@ for node in response.source_nodes:
 # [What I would change]
 # What I would change is raising the similarity score threshold so lower confidence answers aren't answered so confidently. Perhaps a comment saying "I can't give you a confident answer"
 # when it is below the new threshold.
-
 
 
 
