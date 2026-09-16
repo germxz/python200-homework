@@ -157,7 +157,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual (Full Model)")
 plt.xlabel("Predicted G3")
 plt.ylabel("Actual G3")
-plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
+plt.savefig(os.path.join(OUT, "predicted_vs_actual_g3.png"))
 plt.close()
 
 # The predictions bunch into a narrow band around 10-13 while the actual grades spread
@@ -204,11 +204,11 @@ print(f"Test R² with G1: {g1_model.score(Xg_test, yg_test):.4f}")
 # R² jumps from ~0.26 to ~0.76. High R² does not mean G1 causes G3 -- both are measures
 # of the same underlying ability in the same class, taken months apart. G1 predicts G3
 # for the same reason your height last year predicts your height this year.
-
+#
 # As an early-warning tool this model is close to useless. By the time G1 exists, the
 # first grading period is already over and teachers can see who is struggling without a
 # model. Anything G1 tells you, a gradebook tells you sooner.
-
+#
 # To intervene before G1, educators would need signals available at enrollment:
 # past failures, prior-year attendance, whether the student is already flagged for
 # support, and family education background. Those are exactly the weak-but-real

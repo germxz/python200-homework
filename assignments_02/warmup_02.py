@@ -133,7 +133,7 @@ plt.plot(lims, lims, "k--")
 plt.title("Predicted vs Actual")
 plt.xlabel("Predicted Cost")
 plt.ylabel("Actual Cost")
-plt.savefig(os.path.join(OUT, "predicted_vs_actual.png"))
+plt.savefig(os.path.join(OUT, "predicted_vs_actual_cost.png"))
 plt.close()
 
 # Above the diagonal: actual cost was higher than predicted, the model underestimated.
