@@ -12,21 +12,20 @@ OUT = os.path.join(BASE, "outputs")
 os.makedirs(OUT, exist_ok=True)
 #Q1
 
-print("Q1")
-
 years  = np.array([1, 2, 3, 5, 7, 10]).reshape(-1, 1)
 salary = np.array([45000, 50000, 60000, 75000, 90000, 120000])
-
 
 model = LinearRegression()
 model.fit(years, salary) # (x, y)
 
-year4= model.predict([[4]])[0] # x = 4
-year8= model.predict([[8]])[0] # x = 8
-print(f"The expected salary for someone working 4 years is ${year4:,.2f}")
-print(f"The expected salary for someone working 8 years is ${year8:,.2f}")
-print(f"The model coefficient is: {model.coef_[0]:,.2f}")
-print(f"The model intercept is: {model.intercept_:,.2f}")
+year4 = model.predict([[4]])[0] # x = 4
+year8 = model.predict([[8]])[0] # x = 8
+
+# print required values in the order the prompt lists them, each labeled
+print(f"Slope (coefficient): {model.coef_[0]:,.2f}")
+print(f"Intercept: {model.intercept_:,.2f}")
+print(f"Predicted salary at 4 years: ${year4:,.2f}")
+print(f"Predicted salary at 8 years: ${year8:,.2f}")
 
 # Q2
 x = np.array([10, 20, 30, 40, 50])
@@ -139,4 +138,3 @@ plt.close()
 
 # Above the diagonal: actual cost was higher than predicted, the model underestimated.
 # Below the diagonal: actual cost was lower than predicted, the model overestimated.
-
