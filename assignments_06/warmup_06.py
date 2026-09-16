@@ -24,8 +24,10 @@ else:
 # each quarter's updates are picked up automatically without retraining. Prompt engineering can't hold that
 # much text, and fine-tuning would bake in stale policies that go out of date every three months.
 
-#SCENARIO B: Due to the need for a specific tuning for a chatbot, The company can use their datasets to fine-tune the model on its own samples.
-# so it shifts the direction the output will take. This will help performance, token cost, and keep things minimal as requested.
+#SCENARIO B: Fine-tuning. The startup has 3,000 in-house examples of a specific brand voice that barely
+# appears online, so the goal is to change how the model writes, not to give it facts to look up. Training on
+# those examples bakes the style into the model itself; RAG and prompt engineering can supply content but
+# can't reliably reshape the voice the way fine-tuning on the examples does.
 
 
 #SCENARIO C: Prompt engineering. You only need to ask an LLM a few questions over a single report, so you
