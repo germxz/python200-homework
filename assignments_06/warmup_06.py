@@ -51,17 +51,16 @@ else:
 #Concepts Q3
 
 # steps = [
-#     "Receive the user's query",
-#     "Extract text from source documents",
-#     "Split text into chunks",
-#     "Convert text chunks into embeddings",
-#     "Embed the user's query",
-#     "Retrieve the most relevant chunks",
-#     "Inject retrieved chunks into the prompt",
-#     "Generate a response from the LLM",
+#     "Extract text from source documents",       # read the raw text out of each source file
+#     "Split text into chunks",                   # break long docs into smaller passages
+#     "Convert text chunks into embeddings",      # turn each chunk into a vector of its meaning
+#     "Receive the user's query",                 # the user asks a question
+#     "Embed the user's query",                   # turn the query into a vector the same way
+#     "Retrieve the most relevant chunks",        # find the chunks whose vectors are closest to the query
+#     "Inject retrieved chunks into the prompt",  # paste those chunks into the prompt as context
+#     "Generate a response from the LLM",         # the LLM answers using the injected context
 # ]
-# (In a real system the document extract/chunk/embed steps are done once, ahead of time, and reused for
-#  every query -- but this lists the full flow the query triggers, in the order asked for.)
+# The first three steps build the index once, ahead of time; the last five run on every query.
 
 # --- Keyword RAG ---
 
