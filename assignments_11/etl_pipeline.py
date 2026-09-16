@@ -18,6 +18,9 @@ openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 with open("models/weather_classifier_metadata.json") as f:
     metadata = json.load(f)
+# The same four daily variables from Week 4: temperature_2m_max, temperature_2m_min,
+# precipitation_sum, wind_speed_10m_max. They are read from the model metadata rather than
+# hardcoded so the API request and the classifier's expected features can never drift apart.
 FEATURES = metadata["feature_names"]
 
 LATITUDE = 47.6062
@@ -46,6 +49,7 @@ def extract() -> list:
         "longitude": LONGITUDE,
         "start_date": "2023-01-01",
         "end_date": "2023-12-31",
+        # temperature_2m_max, temperature_2m_min, precipitation_sum, wind_speed_10m_max
         "daily": FEATURES,
         "timezone": "auto",
     }
@@ -97,13 +101,8 @@ def transform(raw_records: list) -> list:
     logger = get_run_logger()
 
     # --- Incremental check ---
-    enriched = (
-        supabase.table("weather_enriched")
-        .select("date")
-        .not_.is_("llm_summary", "null")
-        .execute()
-        .data
-    )
+    # Fetch the dates already in weather_enriched and skip them.
+    enriched = supabase.table("weather_enriched").select("date").execute().data
     already_done = {row["date"] for row in enriched}
     to_process = [row for row in raw_records if row["date"] not in already_done]
 
