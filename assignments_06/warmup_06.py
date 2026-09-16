@@ -19,38 +19,49 @@ else:
 # --- RAG Concepts ---
 
 #Concepts Q1
-#SCENARIO A: In this scenario, the best apporach would be the using RAG. Since I need to extract data from a database 
+#SCENARIO A: In this scenario, the best approach would be the using RAG. Since I need to extract data from a database 
 # of actively changing PDFs, I can use RAG to reference to the most recent database for its responses. 
 
 #SCENARIO B: Due to the need for a specific tuning for a chatbot, The company can use their datasets to fine-tune the model on its own samples.
 # so it shifts the direction the output will take. This will help performance, token cost, and keep things minimal as requested.
 
 
-#SCENARIO C: In the scenario where you only need to ask an LLM a few questions over a report, they could use prompt engineering. 
-# This allows for the user to give an LLM their work and they can customize the chatbot's purpose and a task as simple as reading a document and giving feedback.
-# RAG would be overkill because it requires building a database and embeddings while prompt engineering can just take a one-shot or two-shot approach.
+#SCENARIO C: Prompt engineering. You only need to ask an LLM a few questions over a single report, so you
+# can paste the report straight into the prompt and ask (one-shot or few-shot). RAG is overkill here: it
+# means building a database and embeddings for what already fits in one prompt. Fine-tuning is wrong too:
+# it is expensive, needs a training dataset, and bakes in knowledge you only need once, not repeatedly.
 
 #Concepts Q2
 
 #   Why is a confidently wrong answer more harmful than one that says "I am not sure"? Give one example of a real situation where
 #    a confident hallucination could cause harm
 
-# A confident wrong answer will go unchecked and just keep building off assumptions, estimates, and even exaggerations. You will have come
-# a long way in a research project and realize you have to go back and check your statistics due to hallucinations giving you wrong or outdated 
-# data filled by placeholders. In an alternative scenario where the  model says "I'm not sure" instead allows the creator too double check and 
+# A confident wrong answer goes unchecked and gets built on: you keep stacking assumptions and estimates
+# on top of one bad fact. You can get a long way into a research project before realizing a statistic was
+# hallucinated, then have to backtrack and redo the work. A model that says "I'm not sure" flags the gap up
+# front, so you can double-check or find another source before it poisons everything downstream.
+#
+# Real example: a paralegal asks an AI for case citations for a court filing. A confident hallucination
+# invents real-sounding but fake cases; if it had said "I'm not sure," the paralegal would have looked them
+# up manually. Lawyers have actually been sanctioned for filing fabricated citations.
+#
+# Tone matters too: a confident tone signals reliability, so users lower their guard and skip verifying.
+# The same wrong fact does far more damage wrapped in confident language than in a hedge.
 
 #Concepts Q3
 
 # steps = [
+#     "Receive the user's query",
 #     "Extract text from source documents",
 #     "Split text into chunks",
 #     "Convert text chunks into embeddings",
-#     "Receive the user's query",
 #     "Embed the user's query",
 #     "Retrieve the most relevant chunks",
 #     "Inject retrieved chunks into the prompt",
 #     "Generate a response from the LLM",
 # ]
+# (In a real system the document extract/chunk/embed steps are done once, ahead of time, and reused for
+#  every query -- but this lists the full flow the query triggers, in the order asked for.)
 
 # --- Keyword RAG ---
 
@@ -115,9 +126,11 @@ result = simple_keyword_retrieval(query, documents= documents, verbose=True)
 best_result_name = result[0][0]
 print(f"Name of document: {best_result_name} ")
 
-# The lack of the stop word "your" gave 3 files the same overlap score of one leading to them having equal opportunity to get chosen. Loyalty.txt 
-# does have the word "your" which is very common. Putting the word "your" in the stop words would have made hours.txt the more obvious choice
-# The reason why loyalty was the tie breaker was because python will sort the tuples in reverse alphabetical order 
+# Selected document: loyalty.txt (printed above). This is a three-way tie at overlap=1:
+#   hours.txt matches "weekends", hiring.txt matches "your", loyalty.txt matches "your".
+# "your" is not in the stopword list, so hiring.txt and loyalty.txt tie with the actually-correct hours.txt.
+# scores.sort(reverse=True) breaks the tie by name in reverse-alphabetical order, so "loyalty.txt" wins.
+# Adding "your" to the stopwords drops hiring/loyalty to 0 and leaves hours.txt as the clear match.
 
 
 
@@ -130,7 +143,7 @@ print(result2)
 
 
 
-# No document was selected for this query - all four scored 0 overlap.
+# Selected document: None found - all four scored 0 overlap, so keyword RAG returned no match (got it wrong).
 
 # Keyword RAG got this wrong: menu.txt is actually the relevant document
 # (it lists espresso, lattes, cold brew, and oat/almond milk), but none of
@@ -148,8 +161,8 @@ print(result2)
 
 query = "How do I sign up for rewards?"
 
-# I think that the query will return no documents found because none 
-# of the words match with a document and some words are even in the stop words
+# Prediction (before running): None found. None of the content words ("sign", "up", "rewards") appear
+# literally in any document, and some query words ("how", "do", "i") are stopwords or don't match anyway.
 
 
 
@@ -158,7 +171,7 @@ print(result3)
 
 # My prediction was correct and I wasn't too surprised. The model did not match any of the words within
 # the documents hence, it came to no conclusion. This is because the model will look for exact
-# word mSimpleDirectoryReaderatches and none of these words match with any doc. If we want to have a more broad
+# word matches and none of these words match with any doc. If we want to have a more broad
 # input availability, they should use semantic RAG to match words to their synonyms.
 
 
@@ -174,7 +187,7 @@ print(result3)
 #   of 0.85 has more similarities by word definition to the chunk than the 0.30 chunk.
 
 
-# 3. Semantic RAG can find a chunck even if the exact word doesn't appear in documents because the model will use a neural
+# 3. Semantic RAG can find a chunk even if the exact word doesn't appear in documents because the model will use a neural
 #   network to embed the word's meanings. This allows the retrieval system to compare it to similar embeddings and how similar they are by 
 #   using cosine similarity.
 
@@ -183,13 +196,13 @@ print(result3)
 
 #Semantic Q2
 
-#       | Feature                    | Keyword RAG                       | Semantic RAG |
-#       |----------------------------|-----------------------------------|--------------|
-#       | What is compared?          | Exact word overlap                | Embeddings    |
-#       | What is retrieved?         | Full document                     | Chunks    |
-#       | Can it handle synonyms?    | No                                | Yes          |
-#       | Storage format             | Plain text dictionary             |  vector database|
-#       | Relevance score            | Number of overlapping keywords    | cosine comparison|
+#       | Feature                 | Keyword RAG                    | Semantic RAG                          |
+#       |-------------------------|--------------------------------|---------------------------------------|
+#       | What is compared?       | Exact word overlap             | Vector embeddings of query and text   |
+#       | What is retrieved?      | Full document                  | The most similar chunks               |
+#       | Can it handle synonyms? | No                             | Yes (matches meaning, not exact words)|
+#       | Storage format          | Plain-text dictionary          | Vector database                       |
+#       | Relevance score         | Number of overlapping keywords | Cosine similarity between embeddings   |
 
 # ---Llama Index ---
  
@@ -272,6 +285,11 @@ for k in [1, 5]:
 # output. K=5 cause the output to be more descriptive with its company programs. This was due to it exctracting 5 chunks 
 # from the text. K=1 produced a very similar output but it wasn't as descriptive and in-depth as k=5. K=1 used the 
 # same first chunk as k=5 but only the first one so it is expected to have a slightly more  generalized output. 
+#
+# Is more retrieved context always better? No. k=5 was more descriptive here, but pulling more chunks also
+# pulls in less-relevant ones (the security/mission docs scored ~0.81 on a benefits query). More context
+# means more tokens, higher cost, and more room for the model to drift onto tangential material. The right
+# k depends on the question: broad questions benefit from more chunks, precise ones do better with fewer.
 
 
 
@@ -295,11 +313,15 @@ for node_with_score in response1.source_nodes:
 # I didn't know what to expect from the second sentence asking about dscounts for national coffee day. It was
 # a sentence not related to the company and it responded that there is no mention of "coffee day discounts". 
 # I think the system handled this query well. It managed to acknowledge it's lack of understanding in that area
-# because of absense of the business's documentation for any discounts. 
+# because of absence of the business's documentation for any discounts. 
 
 # If there's something I must change, it would be the simimlarity score threshold to have a consistent "I'm not sure" 
 # output for when inputs start getting vague. This will ensure that the system doesn't try to answer 
 #something it can't answer fully correctly.
+#
+# Failure mode, stated plainly: the retriever returns its best available chunks even when none are strongly
+# relevant, and the LLM then answers confidently from weak context instead of refusing. Low similarity
+# scores are the warning sign, but nothing in the default setup acts on them.
 
 
 #LLama Index Q4
@@ -343,6 +365,7 @@ print(f"Relevancy Score: {relevancy_result.score}")
 print("-" * 30)
 
 
+# [1] What faithfulness 1.0 vs 0.0 means:
 # A faithfulness score of 1.0 means the response is fully supported by the retrieved
 # source context - every claim in the answer can be traced back to the documents,
 # with no fabricated or unsupported information. A score of 0.0 means the response
@@ -352,6 +375,7 @@ print("-" * 30)
 # ground it against.
 
 
+# [2] Relevancy vs faithfulness:
 # Relevancy measures whether the response actually addresses the question that was
 # asked. Faithfulness checks "is this response backed up by the source documents?"
 # while relevancy checks "does this response answer the actual query?" A response
@@ -359,6 +383,7 @@ print("-" * 30)
 # being relevant (if that context doesn't answer the question), or vice versa.
 #
 
+# [3] Did the scores match expectations?
 # Yes - Query 1 scored 1.0/1.0 and Query 2 scored 0.0/0.0. For Query 1, the
 # benefits question, BrightLeaf's documents clearly contained relevant, detailed
 # information, so the response was both grounded in the source material and
@@ -372,6 +397,7 @@ print("-" * 30)
 # treated as "relevant" to the literal question asked.
 
 
+# [4] What LLM-as-a-judge means and why simple metrics fall short:
 # LLM-as-a-judge means using a separate LLM call to read the query, the response, 
 # and the retrieved context, then assess qualities like faithfulness and relevancy that
 # don't have a single "correct" string to match against. Simple accuracy metrics (like exact 

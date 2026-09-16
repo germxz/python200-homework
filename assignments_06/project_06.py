@@ -9,7 +9,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # step 1
 
-docs_dir = Path("groundwork_docs")
+docs_dir = Path(__file__).parent / "groundwork_docs"
 assert docs_dir.exists(), f"Document directory not found: {docs_dir}"
 
 if load_dotenv():
@@ -56,7 +56,7 @@ for q in questions:
     print(f" Text Snippet: {top_node.get_content()[:200]}...")
     print("-"*30)
         
-# After running all 5 queries, most responses were confident and accurate - the answers
+# After running all five document queries, most responses were confident and accurate - the answers
 # were concise and the retrieved document matched what the question was actually asking
 # about. The one exception was the dairy-free milk question: it pulled from
 # seasonal_specials.txt (a limited-time lemonade description) instead of a more
@@ -84,11 +84,11 @@ for node in response.source_nodes:
     
     
 # I asked what drinks does it recommend after a breakup. I supposed this would be hard because it involves human emotions
-# and recommendations, and they're likely not accounted for in our groundwork_docs index.\
+# and recommendations, and they're likely not accounted for in our groundwork_docs index.
 #It seems like the problem was that the output chunks only had a similarity score range of 0.70 to 0.7331 which is low compared to more correct 
 #outputs with scores of 0.77 and up. At this threshold, the LLM will still try to generate an answer that to pertain to recommendations.
 # The output was simply the name of the drink and nothing more. No explanation as to why that drink was chosen. 
-# What I would change is rasising the similarity score threshold so lower confidence answers aren't answered so confidently. Perhaps a comment saying "I can't give you a confident answer"
+# What I would change is raising the similarity score threshold so lower confidence answers aren't answered so confidently. Perhaps a comment saying "I can't give you a confident answer"
 # when it is below the new threshold.
 
 
