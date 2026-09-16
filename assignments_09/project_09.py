@@ -140,5 +140,6 @@ def verify(supabase):
 supabase = get_client()
 data = extract_weather()
 records = transform(data)
+
 load(supabase, records)
 verify(supabase)
